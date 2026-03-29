@@ -1,0 +1,42 @@
+import { Request } from 'express';
+
+export type UserRole = 'owner' | 'admin' | 'staff';
+
+// Augmentación global del Request de Express.
+// Esto permite que todos los handlers usen req.user sin castings manuales.
+// authenticate.ts es el responsable de poblar este campo.
+declare global {
+  namespace Express {
+    interface Request {
+      user: {
+        id: string;
+        shop_id: string;  // OBLIGATORIO: aísla datos por tienda
+        email: string;
+        role: UserRole;
+      };
+    }
+  }
+}
+
+// Alias tipado para handlers que requieren autenticación previa
+export type AuthenticatedRequest = Request;
+
+// Respuesta JSON estándar para toda la API
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  data?: T;
+  message?: string;
+  meta?: PaginationMeta;
+}
+
+export interface PaginationMeta {
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface PaginationParams {
+  page: number;
+  limit: number;
+}
