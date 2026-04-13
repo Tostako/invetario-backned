@@ -12,3 +12,5 @@ Ejecutar en este orden (las FK dependen de las tablas anteriores):
 8. `08_orders.sql`
 9. `09_inventory_movements.sql`
 10. `10_rls_policies.sql` (revisar antes de activar en producción)
+11. `11_cart_items.sql`
+12. `12_payments.sql`
