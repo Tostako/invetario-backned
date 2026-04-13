@@ -10,6 +10,7 @@ import { productRouter } from './modules/products/product.routes';
 import { cartRouter } from './modules/cart/cart.routes';
 import { orderRouter } from './modules/orders/order.routes';
 import { paymentRouter } from './modules/payments/payment.routes';
+import { categoryRouter } from './modules/categories/category.routes';
 
 const app = express();
 
@@ -42,6 +43,7 @@ app.use('/api/v1/products', productRouter);
 app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/payments', paymentRouter);
+app.use('/api/v1/categories', categoryRouter);
 
 // ─── Manejo de errores (siempre al final) ─────────────────────────────────────
 app.use(notFoundHandler);

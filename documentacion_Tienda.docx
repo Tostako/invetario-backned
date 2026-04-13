@@ -1,0 +1,116 @@
+🏷️ 3. Gestión de Categorías
+🧾 HU11 – Crear categoría
+
+Como dueño de la tienda
+quiero crear categorías de productos
+para organizar mejor el catálogo de la tienda.
+
+✅ Criterios de aceptación:
+
+● Debo poder ingresar nombre, descripción y estado (activa/inactiva).
+● Cada categoría debe pertenecer a una tienda (tenant_id).
+● No se permiten categorías con nombres duplicados dentro de la misma tienda.
+
+📂 HU12 – Listar categorías
+
+Como dueño de la tienda
+quiero ver todas las categorías registradas
+para gestionar el catálogo fácilmente.
+
+✅ Criterios de aceptación:
+
+● Se listan todas las categorías de la tienda.
+● Se muestra nombre, estado y fecha de creación.
+● Solo se visualizan categorías del mismo tenant_id.
+
+✏️ HU13 – Editar categoría
+
+Como dueño de la tienda
+quiero modificar una categoría existente
+para actualizar su información.
+
+✅ Criterios de aceptación:
+
+● Permite editar nombre, descripción y estado.
+● Los cambios se reflejan inmediatamente.
+● No permite modificar categorías de otra tienda.
+
+❌ HU14 – Eliminar categoría
+
+Como administrador
+quiero eliminar una categoría
+para mantener organizado el sistema.
+
+✅ Criterios de aceptación:
+
+● Permite eliminar una categoría si no tiene productos asociados.
+● Si tiene productos, se debe impedir o mostrar advertencia.
+● Solo se eliminan categorías del mismo tenant_id.
+
+⚙️ API DE CATEGORÍAS
+📌 Endpoint base:
+/api/categories
+➕ Crear categoría
+
+POST /
+
+Body:
+{
+  "name": "Camisetas",
+  "description": "Ropa superior",
+  "is_active": true
+}
+✔ Respuesta:
+{
+  "message": "Categoría creada correctamente"
+}
+📋 Listar categorías
+
+GET /
+
+✔ Respuesta:
+[
+  {
+    "category_id": 1,
+    "name": "Camisetas",
+    "is_active": true,
+    "created_at": "2026-04-13"
+  }
+]
+🔍 Obtener categoría por ID
+
+GET /:id
+
+✏️ Actualizar categoría
+
+PUT /:id
+
+Body:
+{
+  "name": "Pantalones",
+  "is_active": false
+}
+❌ Eliminar categoría
+
+DELETE /:id
+
+🔐 SEGURIDAD (MULTITENANT)
+
+Todas las operaciones están protegidas por:
+
+✔ Filtro obligatorio:
+WHERE tenant_id = currentTenant
+✔ Row Level Security:
+tenant_id = auth.jwt() ->> 'tenant_id'
+
+👉 Esto garantiza:
+
+Aislamiento total entre tiendas
+Seguridad de datos
+Control por usuario autenticado
+🧠 LÓGICA DE NEGOCIO
+
+✔ Una categoría pertenece a una tienda
+✔ Un producto puede tener una categoría
+✔ No se pueden mezclar categorías entre tiendas
+✔ Las categorías pueden desactivarse sin eliminarse

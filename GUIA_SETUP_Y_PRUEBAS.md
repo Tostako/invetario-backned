@@ -20,6 +20,7 @@
 13. [Errores comunes — Carrito y Pedidos](#13-errores-comunes--carrito-y-pedidos)
 14. [Pruebas — Pasarela de Pago Mercado Pago](#14-pruebas--pasarela-de-pago-mercado-pago)
 15. [Errores comunes — Pagos](#15-errores-comunes--pagos)
+16. [Historias de Usuario — Categorías](#16-historias-de-usuario--categorías)
 
 ---
 
@@ -2062,3 +2063,55 @@ Solución: Verificar el ID con GET /orders/:id
 | POST | `/api/v1/payments/card` | Sí | staff |
 | POST | `/api/v1/payments/pse` | Sí | staff |
 | POST | `/api/v1/payments/webhook` | **No** | — |
+
+---
+
+## 16. Historias de Usuario — Categorías
+
+### 🧾 HU11 – Crear categoría
+
+**Como** administrador
+**quiero** crear categorías de productos
+**para** organizar mejor el catálogo de la tienda.
+
+**✅ Criterios de aceptación:**
+
+- Debo poder ingresar nombre, descripción y estado (activa/inactiva).
+- Cada categoría debe pertenecer a una tienda (`tenant_id`).
+- No se permiten categorías con nombres duplicados dentro de la misma tienda.
+
+### 📂 HU12 – Listar categorías
+
+**Como** administrador
+**quiero** ver todas las categorías registradas
+**para** gestionar el catálogo fácilmente.
+
+**✅ Criterios de aceptación:**
+
+- Se listan todas las categorías de la tienda.
+- Se muestra nombre, estado y fecha de creación.
+- Solo se visualizan categorías del mismo `tenant_id`.
+
+### ✏️ HU13 – Editar categoría
+
+**Como** administrador
+**quiero** modificar una categoría existente
+**para** actualizar su información.
+
+**✅ Criterios de aceptación:**
+
+- Permite editar nombre, descripción y estado.
+- Los cambios se reflejan inmediatamente.
+- No permite modificar categorías de otra tienda.
+
+### ❌ HU14 – Eliminar categoría
+
+**Como** administrador
+**quiero** eliminar una categoría
+**para** mantener organizado el sistema.
+
+**✅ Criterios de aceptación:**
+
+- Permite eliminar una categoría si no tiene productos asociados.
+- Si tiene productos, se debe impedir o mostrar advertencia.
+- Solo se eliminan categorías del mismo `tenant_id`.
