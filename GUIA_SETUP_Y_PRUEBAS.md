@@ -11,16 +11,19 @@
 4. [Arrancar el servidor](#4-arrancar-el-servidor)
 5. [Configurar Postman](#5-configurar-postman)
 6. [Pruebas — Auth](#6-pruebas--auth)
-7. [Pruebas — Productos](#7-pruebas--productos)
-8. [Flujo completo de prueba (orden recomendado)](#8-flujo-completo-de-prueba-orden-recomendado)
-9. [Errores comunes y soluciones](#9-errores-comunes-y-soluciones)
-10. [Pruebas — Carrito (HU6 y HU7)](#10-pruebas--carrito-hu6-y-hu7)
-11. [Pruebas — Pedidos (HU8, HU9 y HU10)](#11-pruebas--pedidos-hu8-hu9-y-hu10)
-12. [Flujo completo — Carrito y Pedidos](#12-flujo-completo-de-prueba--carrito-y-pedidos-orden-recomendado)
-13. [Errores comunes — Carrito y Pedidos](#13-errores-comunes--carrito-y-pedidos)
-14. [Pruebas — Pasarela de Pago Mercado Pago](#14-pruebas--pasarela-de-pago-mercado-pago)
-15. [Errores comunes — Pagos](#15-errores-comunes--pagos)
-16. [Historias de Usuario — Categorías](#16-historias-de-usuario--categorías)
+7. [Pruebas — Productos y categorías](#7-pruebas--productos-y-categorías)
+8. [Autenticación de Clientes (Customer)](#8-autenticación-de-clientes-customer)
+9. [Flujo completo de prueba (orden recomendado)](#9-flujo-completo-de-prueba-orden-recomendado)
+10. [Errores comunes y soluciones](#10-errores-comunes-y-soluciones)
+11. [Pruebas — Carrito (solo customers)](#11-pruebas--carrito-solo-customers)
+12. [Pruebas — Pedidos](#12-pruebas--pedidos)
+13. [Flujo completo — Carrito y Pedidos](#13-flujo-completo-de-prueba--carrito-y-pedidos-orden-recomendado)
+14. [Errores comunes — Carrito y Pedidos](#14-errores-comunes--carrito-y-pedidos)
+15. [Pruebas — Pasarela de Pago Mercado Pago](#15-pruebas--pasarela-de-pago-mercado-pago)
+16. [Errores comunes — Pagos](#16-errores-comunes--pagos)
+17. [Historias de Usuario — Categorías](#17-historias-de-usuario--categorías)
+18. [Pruebas — Superadmin (panel global)](#18-pruebas--superadmin-panel-global)
+19. [Resumen rápido de endpoints](#resumen-rápido-de-endpoints)
 
 ---
 
@@ -51,11 +54,10 @@ npm --version    # debe mostrar 9.x.x o superior
 
 ### 2.2 Ejecutar las migrations
 
-Ir a **SQL Editor** (menú lateral izquierdo) y ejecutar cada archivo en este orden.
-Copiar el contenido completo de cada archivo y hacer click en **Run**:
+Ir a **SQL Editor** (menú lateral izquierdo) y ejecutar cada archivo **en este orden** (los números importan: tablas y funciones dependen de las anteriores).
 
 ```
-database/01_extensions.sql     ← primero siempre
+database/01_extensions.sql
 database/02_shops.sql
 database/03_users.sql
 database/04_categories.sql
@@ -64,10 +66,23 @@ database/06_products.sql
 database/07_customers.sql
 database/08_orders.sql
 database/09_inventory_movements.sql
-database/10_rls_policies.sql   ← último
+database/10_rls_policies.sql
+database/11_cart_items.sql
+database/12_payments.sql
+database/13_customer_auth.sql
+database/14_cart_customer_migration.sql
+database/15_superadmin.sql
+database/16_fn_auth.sql
+database/17_fn_products.sql
+database/18_fn_categories.sql
+database/19_fn_cart.sql
+database/20_fn_orders.sql
+database/21_fn_payments.sql
+database/22_fn_superadmin.sql
+database/23_views.sql
 ```
 
-> Si aparece error "extension already exists" en el 01, ignorarlo y continuar.
+> Si aparece error "extension already exists" en el `01`, ignorarlo y continuar.
 
 ### 2.3 Obtener la DATABASE_URL
 
@@ -96,7 +111,7 @@ npm install
 
 ### 3.2 Crear el archivo .env
 
-Crear un archivo llamado `.env` en la raíz del proyecto con este contenido:
+Crear un archivo llamado `.env` en la raíz del proyecto. Puedes copiar `.env.example` y completar valores. Mínimo recomendado:
 
 ```env
 PORT=3000
@@ -106,10 +121,18 @@ DATABASE_URL=postgresql://postgres:[TU_PASSWORD]@db.[PROJECT_REF].supabase.co:54
 
 JWT_SECRET=una_clave_secreta_larga_y_segura_de_al_menos_32_caracteres
 JWT_EXPIRES_IN=7d
+
+# Obligatorio para que el servidor arranque (pagos con Mercado Pago)
+MERCADOPAGO_ACCESS_TOKEN=TEST-tu_token_de_prueba_de_mercado_pago
+
+# Opcional: orígenes CORS separados por coma (por defecto el código permite *)
+# ALLOWED_ORIGINS=http://localhost:5173,https://tu-dominio.com
 ```
 
 > **Importante:** `JWT_SECRET` debe tener al menos 32 caracteres. Ejemplo:
 > `mi_super_clave_secreta_2024_inventario_saas`
+
+> **Mercado Pago:** en `src/config/env.ts` la variable `MERCADOPAGO_ACCESS_TOKEN` es **obligatoria**. Usa credenciales de **prueba** (`TEST-...`) en desarrollo. Ver [sección 15](#15-pruebas--pasarela-de-pago-mercado-pago).
 
 ### 3.3 Verificar estructura final
 
@@ -120,7 +143,7 @@ invetario_Tiendas_Backend/
 ├── .gitignore
 ├── package.json
 ├── tsconfig.json
-├── database/               ← archivos SQL ejecutados en Supabase
+├── database/               ← migraciones SQL (ejecutar en Supabase en orden)
 └── src/
     ├── app.ts
     ├── server.ts
@@ -128,7 +151,12 @@ invetario_Tiendas_Backend/
     ├── middlewares/
     ├── modules/
     │   ├── auth/
-    │   └── products/
+    │   ├── cart/
+    │   ├── categories/
+    │   ├── orders/
+    │   ├── payments/
+    │   ├── products/
+    │   └── superadmin/
     └── shared/
 ```
 
@@ -180,29 +208,39 @@ Respuesta esperada:
 | Variable | Initial Value | Current Value |
 |---|---|---|
 | `base_url` | `http://localhost:3000/api/v1` | `http://localhost:3000/api/v1` |
-| `token` | (vacío) | (vacío) — se llenará automáticamente |
+| `token` | (vacío) | (vacío) — JWT tienda (owner/admin/staff), se llena con login/register |
+| `customer_token` | (vacío) | (vacío) — JWT customer |
+| `superadmin_token` | (vacío) | (vacío) — JWT superadmin ([sección 18](#18-pruebas--superadmin-panel-global)) |
 | `shop_slug` | (vacío) | (vacío) — se llenará al registrar |
 
 5. Click en **Save**
-6. Seleccionar el entorno `Inventario Local` en el dropdown superior derecho
 
-### 5.2 Configurar guardado automático del token
+### 5.2 Script automático de Token
 
-En cada request de **login** y **register**, ir a la pestaña **Tests** y pegar:
+Para no tener que copiar y pegar el JWT, ve a tu **Colección (o carpeta superior)**, abre la pestaña **Tests** y pega esto:
 
 ```javascript
 const res = pm.response.json();
 if (res.success && res.data?.token) {
-    pm.environment.set("token", res.data.token);
+    const url = pm.request.url.toString();
+    if (url.includes("/auth/customer")) {
+        pm.environment.set("customer_token", res.data.token);
+    } else if (url.includes("/admin/auth")) {
+        pm.environment.set("superadmin_token", res.data.token);
+    } else {
+        pm.environment.set("token", res.data.token);
+    }
     console.log("Token guardado automáticamente");
 }
 ```
+
+Así, cada vez que hagas login o registro, Postman guardará el JWT correcto: tienda (`token`), cliente (`customer_token`) o superadmin (`superadmin_token`).
 
 ### 5.3 Configurar el header de autorización
 
 Para todos los requests que requieran auth:
 - Pestaña **Auth** → Type: **Bearer Token**
-- Token: `{{token}}`
+- Token: `{{token}}` (tienda), `{{customer_token}}` (cliente) o `{{superadmin_token}}` (panel global)
 
 O agregar manualmente en **Headers**:
 ```
@@ -304,9 +342,11 @@ Content-Type: application/json
 
 ---
 
-## 7. Pruebas — Productos
+## 7. Pruebas — Productos y categorías
 
-> Todos los endpoints de productos requieren el header `Authorization: Bearer {{token}}`
+### Productos
+
+> Todos los endpoints de productos requieren el header `Authorization: Bearer {{token}}` (usuario de tienda: staff, admin u owner).
 
 ### 7.1 Crear un producto
 
@@ -331,18 +371,21 @@ Authorization: Bearer {{token}}
 }
 ```
 
-**Body completo (con todos los campos opcionales):**
+**Body completo (incluye opcionales admitidos por la API):**
 ```json
 {
   "sku": "CAM-001",
   "name": "Camiseta Básica Blanca",
   "description": "Camiseta 100% algodón, talla única",
+  "image_url": "https://ejemplo.com/imagen.jpg",
+  "category_id": "uuid-de-categoria",
+  "supplier_id": "uuid-de-proveedor",
   "price": 25.99,
   "cost": 12.50,
   "stock": 100,
   "stock_min": 10,
   "stock_max": 500,
-  "unit": "unit"  
+  "unit": "unit"
 }
 ```
 
@@ -422,6 +465,7 @@ Authorization: Bearer {{token}}
 | `limit` | `?limit=10` | Resultados por página |
 | `category_id` | `?category_id=uuid` | Filtrar por categoría |
 | `supplier_id` | `?supplier_id=uuid` | Filtrar por proveedor |
+| `is_active` | `?is_active=false` | Por defecto el listado asume solo activos; usa `false` para incluir productos desactivados |
 
 **Ejemplos de URL con filtros:**
 ```
@@ -429,6 +473,8 @@ GET http://localhost:3000/api/v1/products?search=camiseta
 GET http://localhost:3000/api/v1/products?low_stock=true
 GET http://localhost:3000/api/v1/products?page=1&limit=5
 GET http://localhost:3000/api/v1/products?search=cam&page=1&limit=10
+GET http://localhost:3000/api/v1/products?category_id=uuid-categoria
+GET http://localhost:3000/api/v1/products?is_active=false
 ```
 
 ---
@@ -581,7 +627,108 @@ Authorization: Bearer {{token}}
 
 ---
 
-## 8. Flujo completo de prueba (orden recomendado)
+### 7.7 Categorías (CRUD)
+
+> Base path: `/api/v1/categories`. Requiere `Authorization: Bearer {{token}}` (usuario de tienda con `authenticate` + `tenantGuard`).
+>
+> **Roles:** listar y ver detalle — cualquier usuario autenticado de la tienda; crear y editar — `admin` u `owner`; eliminar — solo `owner`.
+
+#### Listar categorías
+
+```
+GET http://localhost:3000/api/v1/categories
+```
+
+**Query params opcionales:** `is_active`, `page`, `limit`.
+
+#### Crear categoría
+
+```
+POST http://localhost:3000/api/v1/categories
+```
+
+**Body (ejemplo):**
+```json
+{
+  "name": "Ropa",
+  "description": "Prendas y accesorios",
+  "is_active": true,
+  "parent_id": null
+}
+```
+
+`parent_id` es opcional (UUID de categoría padre para jerarquías).
+
+#### Obtener una categoría
+
+```
+GET http://localhost:3000/api/v1/categories/:id
+```
+
+#### Editar categoría
+
+```
+PATCH http://localhost:3000/api/v1/categories/:id
+```
+
+**Body:** solo campos a cambiar (`name`, `description`, `is_active`, `parent_id`).
+
+#### Eliminar categoría
+
+```
+DELETE http://localhost:3000/api/v1/categories/:id
+```
+
+> Solo `owner`. La base de datos puede impedir el borrado si hay productos asociados.
+
+---
+
+## 8. Autenticación de Clientes (Customer)
+
+A diferencia de los administradores y empleados (`users`), los clientes finales (`customers`) tienen sus propios endpoints de autenticación. Un cliente solo puede interactuar con el carrito, ver sus propios pedidos y procesar los pagos correspondientes.
+
+### 8.1 Registro de Cliente (Customer)
+
+Crea una cuenta para un cliente final asociado a una tienda específica (`shop_slug`).
+
+* **Método:** `POST`
+* **URL:** `{{base_url}}/auth/customer/register`
+* **Headers:**
+  * `Content-Type: application/json`
+
+**Body (raw JSON):**
+```json
+{
+  "name": "María García",
+  "email": "maria@ejemplo.com",
+  "password": "password123",
+  "shop_slug": "tienda-demo",
+  "phone": "3001234567",
+  "address": "Calle Falsa 123"
+}
+```
+
+**Respuesta esperada (201):** Obtendrás el JWT del customer que usarás para las gestiones de carrito y pedidos. Guárdalo como variable de entorno en Postman como `customer_token`.
+
+### 8.2 Login de Cliente (Customer)
+
+* **Método:** `POST`
+* **URL:** `{{base_url}}/auth/customer/login`
+* **Headers:**
+  * `Content-Type: application/json`
+
+**Body (raw JSON):**
+```json
+{
+  "email": "maria@ejemplo.com",
+  "password": "password123",
+  "shop_slug": "tienda-demo"
+}
+```
+
+---
+
+## 9. Flujo completo de prueba (orden recomendado)
 
 Seguir estos pasos en orden para una prueba end-to-end completa:
 
@@ -615,6 +762,11 @@ PASO 7 — Probar búsqueda
   GET /products?search=cam
   → Solo debe aparecer CAM-001
 
+PASO 7b — (Opcional) Categorías
+  POST /categories  { "name": "General", "is_active": true }
+  GET /categories
+  → Ver sección 7.7
+
 PASO 8 — Obtener un producto por ID
   GET /products/:id  (usar el ID de CAM-001)
 
@@ -645,17 +797,27 @@ PASO 14 — Eliminar un producto
 PASO 15 — Verificar que ya no aparece
   GET /products
   → Solo deben aparecer 2 productos (CAM-001 y ZAP-001)
+
+PASO 16 — Registrar un cliente
+  POST /auth/customer/register
+  → Guardar el customer_token automáticamente
 ```
 
 ---
 
-## 9. Errores comunes y soluciones
+## 10. Errores comunes y soluciones
 
 ### El servidor no arranca
 
 **Error:** `Missing required environment variable: DATABASE_URL`
 ```
 Solución: Verificar que el archivo .env existe en la raíz y tiene DATABASE_URL definida.
+```
+
+**Error:** `Missing required environment variable: MERCADOPAGO_ACCESS_TOKEN`
+```
+Solución: Agregar MERCADOPAGO_ACCESS_TOKEN al .env (token de prueba TEST-... en desarrollo).
+Ver sección 3.2 y 16.
 ```
 
 **Error:** `connection refused` o `ECONNREFUSED`
@@ -747,12 +909,12 @@ SELECT id, sku, name, price, stock, is_active FROM products WHERE shop_id = 'uui
 
 ---
 
-## 10. Pruebas — Carrito (HU6 y HU7)
+## 11. Pruebas — Carrito (Solo Customers)
 
-> Todos los endpoints de carrito requieren el header `Authorization: Bearer {{token}}`
-> El carrito es por usuario autenticado — cada usuario tiene su propio carrito dentro de su tienda.
+> [!WARNING]
+> **El Carrito de Compras solo puede ser utilizado por cuentas con rol "customer".** Si intentas usar un token de "admin", "owner" o "staff", recibirás un error `403 Forbidden` informándote que solo los clientes pueden usar el carrito. Asegúrate de registrarte y usar el JWT de un customer (Sección 8).
 
-### 10.1 Agregar producto al carrito (HU6)
+### 11.1 Agregar producto al carrito (HU6)
 
 ```
 POST http://localhost:3000/api/v1/cart/items
@@ -761,7 +923,7 @@ POST http://localhost:3000/api/v1/cart/items
 **Headers:**
 ```
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{customer_token}}
 ```
 
 **Body (raw JSON):**
@@ -781,7 +943,7 @@ Authorization: Bearer {{token}}
   "data": {
     "id": "uuid-del-item-carrito",
     "shop_id": "uuid-de-tu-tienda",
-    "user_id": "uuid-de-tu-usuario",
+    "customer_id": "uuid-del-customer",
     "product_id": "uuid-del-producto",
     "quantity": 2,
     "created_at": "2024-01-15T10:00:00.000Z",
@@ -807,7 +969,7 @@ Authorization: Bearer {{token}}
 
 ---
 
-### 10.2 Ver carrito completo (HU7)
+### 11.2 Ver carrito completo (HU7)
 
 ```
 GET http://localhost:3000/api/v1/cart
@@ -815,7 +977,7 @@ GET http://localhost:3000/api/v1/cart
 
 **Headers:**
 ```
-Authorization: Bearer {{token}}
+Authorization: Bearer {{customer_token}}
 ```
 
 **Respuesta esperada (200):**
@@ -827,7 +989,7 @@ Authorization: Bearer {{token}}
       {
         "id": "uuid-del-item",
         "shop_id": "uuid-tienda",
-        "user_id": "uuid-usuario",
+        "customer_id": "uuid-customer",
         "product_id": "uuid-producto",
         "quantity": 2,
         "created_at": "2024-01-15T10:00:00.000Z",
@@ -850,7 +1012,7 @@ Authorization: Bearer {{token}}
 
 ---
 
-### 10.3 Actualizar cantidad de un ítem del carrito (HU7)
+### 11.3 Actualizar cantidad de un ítem del carrito (HU7)
 
 ```
 PATCH http://localhost:3000/api/v1/cart/items/:id
@@ -861,7 +1023,7 @@ PATCH http://localhost:3000/api/v1/cart/items/:id
 **Headers:**
 ```
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{customer_token}}
 ```
 
 **Body (raw JSON):**
@@ -878,7 +1040,7 @@ Authorization: Bearer {{token}}
   "data": {
     "id": "uuid-del-item",
     "shop_id": "uuid-tienda",
-    "user_id": "uuid-usuario",
+    "customer_id": "uuid-customer",
     "product_id": "uuid-producto",
     "quantity": 5,
     "product_name": "Camiseta Básica Blanca",
@@ -900,7 +1062,7 @@ Authorization: Bearer {{token}}
 
 ---
 
-### 10.4 Eliminar ítem del carrito (HU7)
+### 11.4 Eliminar ítem del carrito (HU7)
 
 ```
 DELETE http://localhost:3000/api/v1/cart/items/:id
@@ -908,7 +1070,7 @@ DELETE http://localhost:3000/api/v1/cart/items/:id
 
 **Headers:**
 ```
-Authorization: Bearer {{token}}
+Authorization: Bearer {{customer_token}}
 ```
 
 **Respuesta esperada (200):**
@@ -930,13 +1092,18 @@ Authorization: Bearer {{token}}
 
 ---
 
-## 11. Pruebas — Pedidos (HU8, HU9 y HU10)
+## 12. Pruebas — Pedidos (HU8, HU9 y HU10)
 
-> Los endpoints de pedidos requieren `Authorization: Bearer {{token}}`
-> Crear pedido: cualquier rol autenticado.
+> Los endpoints de pedidos requieren `Authorization: Bearer {{token}}` o `{{customer_token}}`
+> Crear pedido: cualquier rol autenticado (staff, admin, owner, customer).
 > Listar pedidos y actualizar estado: solo `admin` y `owner`.
+> Ver detalle de pedido: cualquier rol, pero un `customer` solo puede ver sus propios pedidos.
 
-### 11.1 Finalizar compra / Crear pedido (HU8)
+### 12.1 Finalizar compra / Crear pedido (HU8)
+
+> **Nota de Roles:** 
+> - Si esta ruta es llamada por un **Customer**, el pedido quedará asociado automáticamente a él de manera segura (no es necesario enviar `customer_id` en el body de Opción B).
+> - Si esta ruta es llamada por **Staff/Admin/Owner**, pueden enviar el parámetro opcional `customer_id` en el body para generar el pedido a nombre de alguien más (usando la Opción B sin usar el carrito).
 
 ```
 POST http://localhost:3000/api/v1/orders
@@ -945,32 +1112,34 @@ POST http://localhost:3000/api/v1/orders
 **Headers:**
 ```
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{customer_token}} (o {{token}})
 ```
 
 #### Opción A — Desde el carrito (recomendado)
 
-Si el usuario ya tiene productos en el carrito (sección 10), envía el body vacío o solo con campos opcionales:
+Si el usuario es un Customer y ya tiene productos en su carrito (sección 11), envía el body vacío o solo con campos opcionales:
 
 **Body (raw JSON):**
 ```json
 {}
 ```
 
-O con opcionales:
+O con nota opcional:
 ```json
 {
-  "customer_id": "uuid-del-cliente",
   "notes": "Entregar antes de las 5pm"
 }
 ```
 
-> El sistema tomará automáticamente los ítems del carrito para crear el pedido.
-> Al finalizar, el carrito se vacía automáticamente.
+> El sistema tomará automáticamente los ítems del carrito personal del customer para crear el pedido.
+> Al finalizar, el carrito se vacía automáticamente y retorna el pedido creado.
+
+> **Sobre `customer_id`:**
+> El sistema asigna automáticamente el `customer_id` basado en el token del cliente autenticado. No es necesario enviarlo en el body.
 
 #### Opción B — Con ítems explícitos
 
-Si prefieres enviar los ítems directamente sin usar el carrito:
+Si prefieres enviar los ítems directamente sin usar el carrito (o si eres Staff procesando una orden manual):
 
 **Body (raw JSON):**
 ```json
@@ -1048,7 +1217,7 @@ Si prefieres enviar los ítems directamente sin usar el carrito:
 
 ---
 
-### 11.2 Listar pedidos (HU9)
+### 12.2 Listar pedidos (HU9)
 
 > **Solo admin y owner** pueden listar todos los pedidos de la tienda.
 
@@ -1121,7 +1290,9 @@ GET http://localhost:3000/api/v1/orders?customer_id=uuid-del-cliente&status=deli
 
 ---
 
-### 11.3 Obtener detalle de un pedido
+### 12.3 Ver detalle de un pedido (HU9)
+
+> **Nota de Roles:** Si llamas a este endpoint siendo **customer**, el sistema obligará a que la orden sea verdaderamente tuya (validación por `customer_id`). Si es de otro cliente, devolverá `403 Forbidden`.
 
 ```
 GET http://localhost:3000/api/v1/orders/:id
@@ -1134,7 +1305,7 @@ GET http://localhost:3000/api/v1/orders/uuid-del-pedido
 
 **Headers:**
 ```
-Authorization: Bearer {{token}}
+Authorization: Bearer {{customer_token}} (o {{token}})
 ```
 
 **Respuesta esperada (200):**
@@ -1186,7 +1357,7 @@ Authorization: Bearer {{token}}
 
 ---
 
-### 11.4 Actualizar estado del pedido (HU10)
+### 12.4 Actualizar estado del pedido (HU10)
 
 > **Solo admin y owner** pueden cambiar el estado de un pedido.
 
@@ -1287,7 +1458,7 @@ PASO 4 — Delivered → (cualquier cambio)
 
 ---
 
-## 12. Flujo completo de prueba — Carrito y Pedidos (orden recomendado)
+## 13. Flujo completo de prueba — Carrito y Pedidos (orden recomendado)
 
 > **Requisito previo:** Haber completado los pasos 1–4 de la sección 8 (registrar tienda, login y crear productos).
 
@@ -1395,7 +1566,7 @@ PASO 24 — Filtrar solo cancelados
 
 ---
 
-## 13. Errores comunes — Carrito y Pedidos
+## 14. Errores comunes — Carrito y Pedidos
 
 ### Carrito
 
@@ -1437,7 +1608,7 @@ o enviar los ítems explícitamente en el body.
 El sistema valida transiciones de estado. Ejemplo:
   - pending solo puede ir a confirmed o cancelled
   - delivered y cancelled son estados finales
-Solución: Revisar la tabla de transiciones válidas en la sección 11.4.
+Solución: Revisar la tabla de transiciones válidas en la sección 12.4.
 ```
 
 **403 — Insufficient permissions (en orders)**
@@ -1457,13 +1628,15 @@ Solución: Verificar el ID con GET /orders
 
 ---
 
-## 14. Pruebas — Pasarela de Pago Mercado Pago
+## 15. Pruebas — Pasarela de Pago Mercado Pago
+
+> Subsecciones **15.0** a **15.5** (requisitos, tarjeta, PSE, webhook, identificación y flujo de prueba).
 
 > La pasarela de pagos usa **Mercado Pago** como procesador.
 > Soporta dos métodos: **tarjeta de crédito/débito** y **PSE** (transferencia bancaria Colombia).
 > Para probar localmente se usa el **modo Sandbox** de Mercado Pago.
 
-### 14.0 Requisitos previos — Configuración de Mercado Pago
+### 15.0 Requisitos previos — Configuración de Mercado Pago
 
 #### Paso 1 — Crear cuenta de desarrollador
 
@@ -1529,7 +1702,7 @@ Authorization: Bearer TEST-tu-access-token
 
 ---
 
-### 14.1 Pago con tarjeta de crédito / débito
+### 15.1 Pago con tarjeta de crédito / débito
 
 ```
 POST http://localhost:3000/api/v1/payments/card
@@ -1541,7 +1714,9 @@ Content-Type: application/json
 Authorization: Bearer {{token}}
 ```
 
-> **Requisito previo:** Tener un pedido creado (sección 11.1). Necesitas el `id` del pedido.
+Usa `{{customer_token}}` si el pedido lo creaste como cliente; con `{{token}}` si actúas como staff/admin/owner de la tienda.
+
+> **Requisito previo:** Tener un pedido creado (sección 12.1). Necesitas el `id` del pedido.
 
 #### ¿Cómo obtener el `token` de la tarjeta?
 
@@ -1665,7 +1840,7 @@ POST https://api.mercadopago.com/v1/card_tokens?public_key=TU_PUBLIC_KEY
 
 ---
 
-### 14.2 Pago por PSE (transferencia bancaria)
+### 15.2 Pago por PSE (transferencia bancaria)
 
 ```
 POST http://localhost:3000/api/v1/payments/pse
@@ -1676,6 +1851,8 @@ POST http://localhost:3000/api/v1/payments/pse
 Content-Type: application/json
 Authorization: Bearer {{token}}
 ```
+
+Mismo criterio que en 15.1: `{{customer_token}}` o `{{token}}` según quién creó el pedido.
 
 **Body (raw JSON):**
 ```json
@@ -1791,7 +1968,7 @@ Authorization: Bearer {{token}}
 
 ---
 
-### 14.3 Webhook de Mercado Pago
+### 15.3 Webhook de Mercado Pago
 
 ```
 POST http://localhost:3000/api/v1/payments/webhook
@@ -1896,7 +2073,7 @@ Para que Mercado Pago envíe notificaciones reales:
 
 ---
 
-### 14.4 Tipos de identificación válidos
+### 15.4 Tipos de identificación válidos
 
 El campo `payer.identification.type` solo acepta estos valores (Colombia):
 
@@ -1910,9 +2087,9 @@ El campo `payer.identification.type` solo acepta estos valores (Colombia):
 
 ---
 
-### 14.5 Flujo completo de prueba — Pagos (orden recomendado)
+### 15.5 Flujo completo de prueba — Pagos (orden recomendado)
 
-> **Requisito previo:** Haber creado un pedido (sección 11.1) y tener las credenciales de MP.
+> **Requisito previo:** Haber creado un pedido (sección 12.1) y tener las credenciales de MP.
 
 ```
 ─── FLUJO A: Pago con tarjeta ───────────────────────────────────────
@@ -1979,7 +2156,7 @@ PASO 13 — Enviar webhook con formato inválido
 
 ---
 
-## 15. Errores comunes — Pagos
+## 16. Errores comunes — Pagos
 
 **Error al arrancar: Missing required environment variable: MERCADOPAGO_ACCESS_TOKEN**
 ```
@@ -2039,34 +2216,7 @@ Solución: Verificar el ID con GET /orders/:id
 
 ---
 
-## Resumen rápido de endpoints
-
-| Método | Endpoint | Auth | Rol mínimo |
-|---|---|---|---|
-| GET | `/health` | No | — |
-| POST | `/api/v1/auth/register` | No | — |
-| POST | `/api/v1/auth/login` | No | — |
-| GET | `/api/v1/products` | Sí | staff |
-| GET | `/api/v1/products/:id` | Sí | staff |
-| POST | `/api/v1/products` | Sí | admin |
-| PATCH | `/api/v1/products/:id` | Sí | admin |
-| DELETE | `/api/v1/products/:id` | Sí | owner |
-| PATCH | `/api/v1/products/:id/stock` | Sí | staff |
-| GET | `/api/v1/cart` | Sí | staff |
-| POST | `/api/v1/cart/items` | Sí | staff |
-| PATCH | `/api/v1/cart/items/:id` | Sí | staff |
-| DELETE | `/api/v1/cart/items/:id` | Sí | staff |
-| POST | `/api/v1/orders` | Sí | staff |
-| GET | `/api/v1/orders` | Sí | admin |
-| GET | `/api/v1/orders/:id` | Sí | staff |
-| PATCH | `/api/v1/orders/:id/estado` | Sí | admin |
-| POST | `/api/v1/payments/card` | Sí | staff |
-| POST | `/api/v1/payments/pse` | Sí | staff |
-| POST | `/api/v1/payments/webhook` | **No** | — |
-
----
-
-## 16. Historias de Usuario — Categorías
+## 17. Historias de Usuario — Categorías
 
 ### 🧾 HU11 – Crear categoría
 
@@ -2115,3 +2265,128 @@ Solución: Verificar el ID con GET /orders/:id
 - Permite eliminar una categoría si no tiene productos asociados.
 - Si tiene productos, se debe impedir o mostrar advertencia.
 - Solo se eliminan categorías del mismo `tenant_id`.
+
+---
+
+## 18. Pruebas — Superadmin (panel global)
+
+Los **superadministradores** gestionan la plataforma completa (todas las tiendas). El JWT **no** incluye `shop_id`; el prefijo de rutas es `/api/v1/admin`.
+
+> En Postman usa `Authorization: Bearer {{superadmin_token}}` (variable que llena el script de la sección 5.2 al llamar `/admin/auth/login` o bootstrap).
+
+### 18.1 Crear el primer superadmin (bootstrap)
+
+Solo responde **201** si en la base de datos **aún no hay** superadmins. Si ya existe alguno, devuelve **403** (`Bootstrap deshabilitado: ya existen superadmins`).
+
+```
+POST http://localhost:3000/api/v1/admin/auth/bootstrap
+```
+
+**Headers:** `Content-Type: application/json` (sin JWT).
+
+**Body:**
+```json
+{
+  "email": "super@plataforma.com",
+  "password": "ClaveSegura12345",
+  "name": "Super Admin"
+}
+```
+
+**Respuesta (201):** incluye `token` y `adminId`. El script de Tests puede guardar `superadmin_token`.
+
+---
+
+### 18.2 Login de superadmin
+
+```
+POST http://localhost:3000/api/v1/admin/auth/login
+```
+
+**Body:**
+```json
+{
+  "email": "super@plataforma.com",
+  "password": "ClaveSegura12345"
+}
+```
+
+**Respuesta (200):** `token`, `admin` (`id`, `name`, `email`).
+
+---
+
+### 18.3 Registrar otro superadmin
+
+Requiere JWT de superadmin ya autenticado.
+
+```
+POST http://localhost:3000/api/v1/admin/auth/register
+```
+
+**Headers:** `Authorization: Bearer {{superadmin_token}}`
+
+**Body:** igual que bootstrap (`email`, `password` mín. 10 caracteres, `name`).
+
+---
+
+### 18.4 CRUD de tiendas (desde panel global)
+
+Todas requieren `Authorization: Bearer {{superadmin_token}}`.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| GET | `/api/v1/admin/shops` | Lista paginada (`?page`, `?limit`, máx. 100 por página) |
+| POST | `/api/v1/admin/shops` | Crea tienda + usuario **owner** en un solo paso |
+| GET | `/api/v1/admin/shops/:id` | Detalle de tienda |
+| PATCH | `/api/v1/admin/shops/:id` | Actualiza datos de la tienda |
+| DELETE | `/api/v1/admin/shops/:id` | Baja lógica (soft delete), según lógica en BD |
+
+**Ejemplo — crear tienda (POST `/api/v1/admin/shops`):**
+
+```json
+{
+  "name": "Tienda Central",
+  "slug": "tienda-central",
+  "email": "tienda@ejemplo.com",
+  "phone": "3001234567",
+  "address": "Calle 1 # 2-3",
+  "currency": "COP",
+  "timezone": "America/Bogota",
+  "plan": "free",
+  "owner_name": "Ana Pérez",
+  "owner_email": "ana@ejemplo.com",
+  "owner_password": "PasswordOwner1"
+}
+```
+
+`logo_url`, `phone`, `address` son opcionales; `plan` puede ser `free`, `basic`, `pro`, `enterprise`.
+
+> **Nota:** Esta creación es independiente del flujo `POST /api/v1/auth/register` (registro self-service de una tienda). Ambos pueden convivir según el caso de uso.
+
+---
+
+## Resumen rápido de endpoints
+
+| Área | Método | Ruta | Auth |
+|---|---|---|---|
+| Sistema | GET | `/health` | No |
+| Auth tienda | POST | `/api/v1/auth/register`, `/api/v1/auth/login` | No |
+| Auth customer | POST | `/api/v1/auth/customer/register`, `/api/v1/auth/customer/login` | No |
+| Categorías | GET, GET | `/api/v1/categories`, `/api/v1/categories/:id` | JWT tienda (cualquier rol) |
+| Categorías | POST, PATCH, DELETE | `/api/v1/categories`, `/api/v1/categories/:id` | POST/PATCH: admin u owner; DELETE: owner |
+| Productos | GET, GET | `/api/v1/products`, `/api/v1/products/:id` | JWT tienda (cualquier rol) |
+| Productos | POST, PATCH | `/api/v1/products`, `/api/v1/products/:id` | admin u owner |
+| Productos | PATCH | `/api/v1/products/:id/stock` | staff, admin u owner |
+| Productos | DELETE | `/api/v1/products/:id` | owner |
+| Carrito | GET, POST, PATCH, DELETE | `/api/v1/cart`, `/api/v1/cart/items`, `/api/v1/cart/items/:id` | JWT **customer** (no staff/admin) |
+| Pedidos | POST | `/api/v1/orders` | JWT con `shop_id` (incl. customer) |
+| Pedidos | GET | `/api/v1/orders` | JWT tienda, admin u owner |
+| Pedidos | GET | `/api/v1/orders/:id` | JWT; customer solo ve los suyos |
+| Pedidos | PATCH | `/api/v1/orders/:id/estado` | admin u owner |
+| Pagos | POST | `/api/v1/payments/card`, `/api/v1/payments/pse` | JWT con `shop_id` (cualquier rol de tienda o customer) |
+| Pagos | POST | `/api/v1/payments/webhook` | **No** (Mercado Pago) |
+| Superadmin | POST | `/api/v1/admin/auth/bootstrap`, `/api/v1/admin/auth/login` | No / No |
+| Superadmin | POST | `/api/v1/admin/auth/register` | JWT superadmin |
+| Superadmin | GET, POST, GET, PATCH, DELETE | `/api/v1/admin/shops` … | JWT superadmin |
+
+Para cuerpos de petición, filtros y códigos de error, usa las secciones numeradas de esta guía.

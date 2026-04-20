@@ -16,7 +16,8 @@ export const pagarConTarjeta = async (
 ): Promise<void> => {
   try {
     const dto  = PagoTarjetaSchema.parse(req.body);
-    const pago = await procesarPagoTarjetaService(req.user.shop_id, dto);
+    const customerId = req.user.role === 'customer' ? req.user.customer_id : undefined;
+    const pago = await procesarPagoTarjetaService(req.user.shop_id, customerId, dto);
     sendCreated(res, pago);
   } catch (err) {
     next(err);
@@ -31,7 +32,8 @@ export const pagarConPse = async (
 ): Promise<void> => {
   try {
     const dto  = PagoPseSchema.parse(req.body);
-    const pago = await procesarPagoPseService(req.user.shop_id, dto);
+    const customerId = req.user.role === 'customer' ? req.user.customer_id : undefined;
+    const pago = await procesarPagoPseService(req.user.shop_id, customerId, dto);
     sendCreated(res, pago);
   } catch (err) {
     next(err);

@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../shared/types';
 import { sendSuccess, sendCreated } from '../../shared/utils/response';
+import { ForbiddenError } from '../../shared/errors/AppError';
 import { AgregarItemSchema, ActualizarItemSchema } from './cart.types';
 import {
   agregarAlCarritoService,
@@ -9,6 +10,13 @@ import {
   eliminarItemService,
 } from './cart.service';
 
+const getCustomerId = (req: AuthenticatedRequest): string => {
+  if (!req.user.customer_id) {
+    throw new ForbiddenError('Solo los clientes (customers) pueden usar el carrito.');
+  }
+  return req.user.customer_id;
+};
+
 // HU7 – Ver carrito
 export const verCarrito = async (
   req: AuthenticatedRequest,
@@ -16,7 +24,8 @@ export const verCarrito = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const resumen = await verCarritoService(req.user.shop_id, req.user.id);
+    const customerId = getCustomerId(req);
+    const resumen = await verCarritoService(req.user.shop_id, customerId);
     sendSuccess(res, resumen);
   } catch (err) {
     next(err);
@@ -30,8 +39,9 @@ export const agregarItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const customerId = getCustomerId(req);
     const dto = AgregarItemSchema.parse(req.body);
-    const item = await agregarAlCarritoService(req.user.shop_id, req.user.id, dto);
+    const item = await agregarAlCarritoService(req.user.shop_id, customerId, dto);
     sendCreated(res, item);
   } catch (err) {
     next(err);
@@ -45,10 +55,11 @@ export const actualizarItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const customerId = getCustomerId(req);
     const dto = ActualizarItemSchema.parse(req.body);
     const item = await actualizarItemService(
       req.user.shop_id,
-      req.user.id,
+      customerId,
       req.params['id']!,
       dto
     );
@@ -65,7 +76,8 @@ export const eliminarItem = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    await eliminarItemService(req.user.shop_id, req.user.id, req.params['id']!);
+    const customerId = getCustomerId(req);
+    await eliminarItemService(req.user.shop_id, customerId, req.params['id']!);
     sendSuccess(res, { message: 'Ítem eliminado del carrito' });
   } catch (err) {
     next(err);

@@ -1,5 +1,10 @@
+// ─── Cart Service ─────────────────────────────────────────────────────────────
+// Database-Centric: la validación de stock y disponibilidad de producto
+// ocurre en sp_agregar_al_carrito / sp_actualizar_cantidad_carrito (BD).
+// El servicio traduce errores de BD y calcula el total del resumen.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NotFoundError, ValidationError } from '../../shared/errors/AppError';
-import { findProductById } from '../products/product.repository';
 import {
   findCartItems,
   findCartItem,
@@ -9,32 +14,36 @@ import {
   clearCart,
 } from './cart.repository';
 import { AgregarItemDto, ActualizarItemDto, CartItem, CartResumen } from './cart.types';
+import { traducirErrorDB } from '../../shared/utils/dbErrors';
 
 // HU6 – Agregar producto al carrito
 export const agregarAlCarritoService = async (
   shopId: string,
-  userId: string,
+  customerId: string,
   dto: AgregarItemDto
 ): Promise<CartItem> => {
-  const producto = await findProductById(shopId, dto.product_id);
-  if (!producto) throw new NotFoundError('Producto');
-  if (!producto.is_active) throw new ValidationError('El producto no está disponible');
-
-  if (dto.quantity > producto.stock) {
-    throw new ValidationError(
-      `Stock insuficiente. Disponible: ${producto.stock}, solicitado: ${dto.quantity}`
-    );
+  try {
+    return await upsertCartItem(shopId, customerId, dto);
+  } catch (err) {
+    throw traducirErrorDB(err, {
+      PRODUCT_NOT_FOUND:     () => new NotFoundError('Producto'),
+      PRODUCTO_NO_DISPONIBLE: () => new ValidationError('El producto no está disponible'),
+      STOCK_INSUFICIENTE: (msg: string) => {
+        const [disponible, solicitado] = msg.split(':')[1]?.split('|') ?? [];
+        return new ValidationError(
+          `Stock insuficiente. Disponible: ${disponible}, solicitado: ${solicitado}`
+        );
+      },
+    });
   }
-
-  return upsertCartItem(shopId, userId, dto);
 };
 
 // HU7 – Ver carrito con subtotales y total
 export const verCarritoService = async (
   shopId: string,
-  userId: string
+  customerId: string
 ): Promise<CartResumen> => {
-  const items = await findCartItems(shopId, userId);
+  const items = await findCartItems(shopId, customerId);
   const total = items.reduce((acc, item) => acc + Number(item.subtotal ?? 0), 0);
   return { items, total };
 };
@@ -42,43 +51,45 @@ export const verCarritoService = async (
 // HU7 – Actualizar cantidad de un ítem
 export const actualizarItemService = async (
   shopId: string,
-  userId: string,
+  customerId: string,
   itemId: string,
   dto: ActualizarItemDto
 ): Promise<CartItem> => {
-  const item = await findCartItem(shopId, userId, itemId);
-  if (!item) throw new NotFoundError('Ítem del carrito');
-
-  const producto = await findProductById(shopId, item.product_id);
-  if (!producto) throw new NotFoundError('Producto');
-
-  if (dto.quantity > producto.stock) {
-    throw new ValidationError(
-      `Stock insuficiente. Disponible: ${producto.stock}, solicitado: ${dto.quantity}`
-    );
+  try {
+    const actualizado = await updateCartItemQuantity(shopId, customerId, itemId, dto.quantity);
+    if (!actualizado) throw new NotFoundError('Ítem del carrito');
+    return actualizado;
+  } catch (err) {
+    throw traducirErrorDB(err, {
+      CART_ITEM_NOT_FOUND: () => new NotFoundError('Ítem del carrito'),
+      STOCK_INSUFICIENTE: (msg: string) => {
+        const [disponible, solicitado] = msg.split(':')[1]?.split('|') ?? [];
+        return new ValidationError(
+          `Stock insuficiente. Disponible: ${disponible}, solicitado: ${solicitado}`
+        );
+      },
+    });
   }
-
-  const actualizado = await updateCartItemQuantity(shopId, userId, itemId, dto.quantity);
-  if (!actualizado) throw new NotFoundError('Ítem del carrito');
-  return actualizado;
 };
 
 // HU7 – Eliminar ítem del carrito
 export const eliminarItemService = async (
   shopId: string,
-  userId: string,
+  customerId: string,
   itemId: string
 ): Promise<void> => {
-  const eliminado = await deleteCartItem(shopId, userId, itemId);
-  if (!eliminado) throw new NotFoundError('Ítem del carrito');
+  // findCartItem para verificar pertenencia antes de eliminar
+  const item = await findCartItem(shopId, customerId, itemId);
+  if (!item) throw new NotFoundError('Ítem del carrito');
+  await deleteCartItem(shopId, customerId, itemId);
 };
 
-// Vaciar carrito (llamado internamente al checkout)
+// Vaciar carrito
 export const vaciarCarritoService = async (
   shopId: string,
-  userId: string
+  customerId: string
 ): Promise<void> => {
-  await clearCart(shopId, userId);
+  await clearCart(shopId, customerId);
 };
 
 export { findCartItems };

@@ -6,14 +6,15 @@ import { UnauthorizedError } from '../shared/errors/AppError';
 
 // Payload que vive dentro del JWT
 interface JwtPayload {
-  sub: string;        // user.id
-  shop_id: string;    // tenant — OBLIGATORIO
+  sub: string;         // user.id o super_admin.id
+  shop_id?: string;    // tenant — ausente en tokens de superadmin
   email: string;
   role: UserRole;
 }
 
 // Verifica el token, extrae el payload y lo adjunta a req.user
-// El shop_id del token es la única fuente de verdad del tenant en la request
+// El shop_id del token es la única fuente de verdad del tenant en la request.
+// Para superadmin, shop_id no está presente en el token (se asigna '' en req.user).
 export const authenticate = (
   req: AuthenticatedRequest,
   _res: Response,
@@ -30,15 +31,21 @@ export const authenticate = (
   try {
     const payload = jwt.verify(token, env.jwt.secret) as JwtPayload;
 
-    if (!payload.sub || !payload.shop_id) {
+    if (!payload.sub || !payload.role) {
+      throw new UnauthorizedError('Invalid token payload');
+    }
+
+    // Superadmin no tiene shop_id — todos los demás roles sí lo requieren
+    if (payload.role !== 'superadmin' && !payload.shop_id) {
       throw new UnauthorizedError('Invalid token payload');
     }
 
     req.user = {
       id: payload.sub,
-      shop_id: payload.shop_id,
+      shop_id: payload.shop_id ?? '',
       email: payload.email,
       role: payload.role,
+      ...(payload.role === 'customer' && { customer_id: payload.sub }),
     };
 
     next();
