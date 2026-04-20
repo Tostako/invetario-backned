@@ -2,11 +2,13 @@ import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest, UserRole } from '../shared/types';
 import { ForbiddenError } from '../shared/errors/AppError';
 
-// Jerarquía de roles: owner > admin > staff
+// Jerarquía de roles: superadmin > owner > admin > staff > customer
 const ROLE_HIERARCHY: Record<UserRole, number> = {
+  superadmin: 10,
   owner: 3,
   admin: 2,
   staff: 1,
+  customer: 0,
 };
 
 // Fábrica de middleware: restringe la ruta a roles con nivel >= el requerido

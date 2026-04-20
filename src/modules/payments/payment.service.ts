@@ -1,7 +1,7 @@
 import { MercadoPagoConfig, Payment as MpPayment } from 'mercadopago';
 import { v4 as uuidv4 } from 'uuid';
 import { env } from '../../config/env';
-import { NotFoundError, ValidationError } from '../../shared/errors/AppError';
+import { NotFoundError, ValidationError, ForbiddenError } from '../../shared/errors/AppError';
 import { findOrderById } from '../orders/order.repository';
 import {
   insertarPago,
@@ -18,9 +18,13 @@ const mpPayment = new MpPayment(mpClient);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const validarOrden = async (shopId: string, orderId: string) => {
+const validarOrden = async (shopId: string, orderId: string, customerId?: string) => {
   const orden = await findOrderById(shopId, orderId);
   if (!orden) throw new NotFoundError('Pedido');
+
+  if (customerId && orden.customer_id !== customerId) {
+    throw new ForbiddenError('No tienes permiso para pagar este pedido.');
+  }
 
   if (orden.status === 'cancelled') {
     throw new ValidationError('No se puede pagar un pedido cancelado');
@@ -38,9 +42,10 @@ const validarOrden = async (shopId: string, orderId: string) => {
 
 export const procesarPagoTarjetaService = async (
   shopId: string,
+  customerId: string | undefined,
   dto: PagoTarjetaDto
 ): Promise<Payment> => {
-  const orden = await validarOrden(shopId, dto.order_id);
+  const orden = await validarOrden(shopId, dto.order_id, customerId);
 
   const respuestaMp = await mpPayment.create({
     body: {
@@ -78,9 +83,10 @@ export const procesarPagoTarjetaService = async (
 
 export const procesarPagoPseService = async (
   shopId: string,
+  customerId: string | undefined,
   dto: PagoPseDto
 ): Promise<Payment> => {
-  const orden = await validarOrden(shopId, dto.order_id);
+  const orden = await validarOrden(shopId, dto.order_id, customerId);
 
   const respuestaMp = await mpPayment.create({
     body: {

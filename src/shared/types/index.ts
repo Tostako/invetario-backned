@@ -1,6 +1,6 @@
 import { Request } from 'express';
 
-export type UserRole = 'owner' | 'admin' | 'staff';
+export type UserRole = 'owner' | 'admin' | 'staff' | 'customer' | 'superadmin';
 
 // Augmentación global del Request de Express.
 // Esto permite que todos los handlers usen req.user sin castings manuales.
@@ -10,9 +10,10 @@ declare global {
     interface Request {
       user: {
         id: string;
-        shop_id: string;  // OBLIGATORIO: aísla datos por tienda
+        shop_id: string;       // OBLIGATORIO para roles de tienda; vacío '' para superadmin
         email: string;
         role: UserRole;
+        customer_id?: string;  // Solo presente cuando role === 'customer'
       };
     }
   }

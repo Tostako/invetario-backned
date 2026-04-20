@@ -1,7 +1,12 @@
+// ─── Payments Repository ─────────────────────────────────────────────────────
+// Thin adapter: invoca stored procedures / funciones de la BD.
+// El trigger trg_pago_aprobado_confirma_pedido (BD) actualiza
+// automáticamente el estado del pedido al aprobarse el pago.
+// Funciones definidas en: database/21_fn_payments.sql
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { query } from '../../config/database';
 import { Payment } from './payment.types';
-
-// REGLA: shop_id obligatorio en todos los accesos (aislamiento multitenant)
 
 interface InsertarPagoParams {
   shopId:              string;
@@ -17,11 +22,7 @@ interface InsertarPagoParams {
 
 export const insertarPago = async (params: InsertarPagoParams): Promise<Payment> => {
   const result = await query<Payment>(
-    `INSERT INTO payments
-       (shop_id, order_id, mp_payment_id, method, status, status_detail,
-        transaction_amount, external_resource_url, raw_response)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     RETURNING *`,
+    `SELECT * FROM sp_insertar_pago($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
     [
       params.shopId,
       params.orderId,
@@ -44,14 +45,8 @@ export const actualizarEstadoPago = async (
   rawResponse: unknown
 ): Promise<Payment | null> => {
   const result = await query<Payment>(
-    `UPDATE payments
-     SET status        = $1,
-         status_detail = $2,
-         raw_response  = $3,
-         updated_at    = NOW()
-     WHERE mp_payment_id = $4
-     RETURNING *`,
-    [status, statusDetail, JSON.stringify(rawResponse), mpPaymentId]
+    `SELECT * FROM sp_actualizar_estado_pago($1, $2, $3, $4::jsonb)`,
+    [mpPaymentId, status, statusDetail, JSON.stringify(rawResponse)]
   );
   return result.rows[0] ?? null;
 };
@@ -61,10 +56,7 @@ export const findPaymentByOrder = async (
   orderId: string
 ): Promise<Payment | null> => {
   const result = await query<Payment>(
-    `SELECT * FROM payments
-     WHERE shop_id = $1 AND order_id = $2
-     ORDER BY created_at DESC
-     LIMIT 1`,
+    `SELECT * FROM fn_obtener_pago_por_orden($1, $2)`,
     [shopId, orderId]
   );
   return result.rows[0] ?? null;
@@ -75,8 +67,8 @@ export const findPaymentById = async (
   paymentId: string
 ): Promise<Payment | null> => {
   const result = await query<Payment>(
-    `SELECT * FROM payments WHERE id = $1 AND shop_id = $2`,
-    [paymentId, shopId]
+    `SELECT * FROM fn_obtener_pago_por_id($1, $2)`,
+    [shopId, paymentId]
   );
   return result.rows[0] ?? null;
 };

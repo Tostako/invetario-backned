@@ -1,30 +1,40 @@
+// ─── Orders Service ───────────────────────────────────────────────────────────
+// Database-Centric: el checkout completo (validar stock, crear orden/ítems,
+// descontar stock, vaciar carrito) ocurre en sp_crear_pedido (BD).
+// La máquina de estados la enforza trg_maquina_estados_pedido (BD).
+// El servicio se encarga de: leer el carrito si no hay ítems explícitos,
+// traducir errores de BD y formatear la respuesta.
+// ─────────────────────────────────────────────────────────────────────────────
+
 import { NotFoundError, ValidationError } from '../../shared/errors/AppError';
 import { PaginationMeta } from '../../shared/types';
-import { findProductById } from '../products/product.repository';
-import { findCartItems, clearCart } from '../cart/cart.repository';
+import { findCartItems } from '../cart/cart.repository';
 import {
-  generarOrderNumber,
   crearOrden,
   findAllOrders,
   findOrderById,
   updateOrderStatus,
 } from './order.repository';
 import { CrearPedidoDto, ActualizarEstadoDto, FiltrosPedido, Order } from './order.types';
+import { traducirErrorDB } from '../../shared/utils/dbErrors';
 
 // HU8 – Finalizar compra
-// Si se pasan items explícitos los usa; si no, toma el carrito del usuario
 export const crearPedidoService = async (
   shopId: string,
   userId: string,
+  cartCustomerId: string | null,
   dto: CrearPedidoDto
 ): Promise<Order> => {
-  // ── Determinar los ítems a procesar ───────────────────────────────────────
+  // Determinar ítems: explícitos en el body o leídos desde el carrito
   let itemsEntrada: Array<{ product_id: string; quantity: number; discount: number }>;
 
   if (dto.items && dto.items.length > 0) {
     itemsEntrada = dto.items;
   } else {
-    const carritoItems = await findCartItems(shopId, userId);
+    if (!cartCustomerId) {
+      throw new ValidationError('No se especificó cliente para leer el carrito.');
+    }
+    const carritoItems = await findCartItems(shopId, cartCustomerId);
     if (carritoItems.length === 0) {
       throw new ValidationError('El carrito está vacío. Agrega productos antes de finalizar la compra.');
     }
@@ -35,79 +45,53 @@ export const crearPedidoService = async (
     }));
   }
 
-  // ── Enriquecer con precios actuales y validar stock ───────────────────────
-  let subtotalGeneral = 0;
-  let descuentoGeneral = 0;
+  try {
+    const { id: orderId } = await crearOrden({
+      shopId,
+      userId,
+      customerId: dto.customer_id ?? null,
+      items:      itemsEntrada,
+      notes:      dto.notes ?? null,
+    });
 
-  const itemsParaInsertar = await Promise.all(
-    itemsEntrada.map(async (entrada) => {
-      const producto = await findProductById(shopId, entrada.product_id);
-      if (!producto) throw new NotFoundError(`Producto ${entrada.product_id}`);
-      if (!producto.is_active) {
-        throw new ValidationError(`El producto "${producto.name}" no está disponible`);
-      }
-      if (entrada.quantity > producto.stock) {
-        throw new ValidationError(
-          `Stock insuficiente para "${producto.name}". Disponible: ${producto.stock}`
+    return findOrderById(shopId, orderId) as Promise<Order>;
+  } catch (err) {
+    throw traducirErrorDB(err, {
+      PRODUCT_NOT_FOUND: (msg: string) =>
+        new NotFoundError(`Producto ${msg.split(':')[1] ?? ''}`),
+      PRODUCTO_NO_DISPONIBLE: (msg: string) =>
+        new ValidationError(`El producto "${msg.split(':')[1] ?? ''}" no está disponible`),
+      STOCK_INSUFICIENTE: (msg: string) => {
+        // Formato: STOCK_INSUFICIENTE:"nombre"|disponible|solicitado
+        const parte = msg.split(':').slice(1).join(':');
+        const [nombre, disponible, solicitado] = parte.split('|');
+        return new ValidationError(
+          `Stock insuficiente para ${nombre}. Disponible: ${disponible}, solicitado: ${solicitado}`
         );
-      }
-
-      const subtotalItem = producto.price * entrada.quantity - entrada.discount;
-      subtotalGeneral  += producto.price * entrada.quantity;
-      descuentoGeneral += entrada.discount;
-
-      return {
-        product_id: entrada.product_id,
-        quantity:   entrada.quantity,
-        unit_price: producto.price,
-        discount:   entrada.discount,
-        subtotal:   subtotalItem,
-      };
-    })
-  );
-
-  const impuesto = 0; // Configurar según jurisdicción si aplica
-  const total    = subtotalGeneral - descuentoGeneral + impuesto;
-
-  const orderNumber = await generarOrderNumber(shopId);
-
-  const orden = await crearOrden({
-    shopId,
-    userId,
-    customerId:  dto.customer_id ?? null,
-    orderNumber,
-    subtotal:    subtotalGeneral,
-    discount:    descuentoGeneral,
-    tax:         impuesto,
-    total,
-    notes:       dto.notes ?? null,
-    items:       itemsParaInsertar,
-  });
-
-  // Vaciar carrito tras checkout exitoso
-  await clearCart(shopId, userId);
-
-  return findOrderById(shopId, orden.id) as Promise<Order>;
+      },
+      STOCK_INSUFICIENTE_CONCURRENTE: () =>
+        new ValidationError('Stock insuficiente (conflicto de concurrencia). Intenta de nuevo.'),
+    });
+  }
 };
 
-// HU9 – Listar pedidos (admin)
+// HU9 – Listar pedidos
 export const listarPedidosService = async (
   shopId: string,
   filtros: FiltrosPedido
 ): Promise<{ pedidos: Order[]; meta: PaginationMeta }> => {
   const { rows, total } = await findAllOrders(shopId, filtros);
-
-  const meta: PaginationMeta = {
-    total,
-    page:       filtros.page,
-    limit:      filtros.limit,
-    totalPages: Math.ceil(total / filtros.limit),
+  return {
+    pedidos: rows,
+    meta: {
+      total,
+      page:       filtros.page,
+      limit:      filtros.limit,
+      totalPages: Math.ceil(total / filtros.limit),
+    },
   };
-
-  return { pedidos: rows, meta };
 };
 
-// Obtener detalle de un pedido
 export const obtenerPedidoService = async (
   shopId: string,
   orderId: string
@@ -123,33 +107,15 @@ export const actualizarEstadoService = async (
   orderId: string,
   dto: ActualizarEstadoDto
 ): Promise<Order> => {
-  const orden = await findOrderById(shopId, orderId);
-  if (!orden) throw new NotFoundError('Pedido');
-
-  // Validar transición de estado
-  validarTransicionEstado(orden.status, dto.status);
-
-  const actualizado = await updateOrderStatus(shopId, orderId, dto.status, dto.notes);
-  if (!actualizado) throw new NotFoundError('Pedido');
-
-  return findOrderById(shopId, orderId) as Promise<Order>;
-};
-
-// ── Reglas de transición de estado ────────────────────────────────────────────
-const transicionesValidas: Record<string, string[]> = {
-  pending:   ['confirmed', 'cancelled'],
-  confirmed: ['shipped', 'cancelled'],
-  shipped:   ['delivered'],
-  delivered: [],
-  cancelled: [],
-};
-
-function validarTransicionEstado(actual: string, nuevo: string): void {
-  const permitidos = transicionesValidas[actual] ?? [];
-  if (!permitidos.includes(nuevo)) {
-    throw new ValidationError(
-      `No se puede cambiar el estado de "${actual}" a "${nuevo}". ` +
-      `Transiciones válidas: ${permitidos.join(', ') || 'ninguna'}`
-    );
+  try {
+    const actualizado = await updateOrderStatus(shopId, orderId, dto.status, dto.notes);
+    if (!actualizado) throw new NotFoundError('Pedido');
+    return findOrderById(shopId, orderId) as Promise<Order>;
+  } catch (err) {
+    throw traducirErrorDB(err, {
+      ORDER_NOT_FOUND: () => new NotFoundError('Pedido'),
+      TRANSICION_INVALIDA: (msg: string) =>
+        new ValidationError(msg.replace('TRANSICION_INVALIDA: ', '')),
+    });
   }
-}
+};

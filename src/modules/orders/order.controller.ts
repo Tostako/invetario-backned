@@ -8,6 +8,7 @@ import {
   obtenerPedidoService,
   actualizarEstadoService,
 } from './order.service';
+import { ForbiddenError } from '../../shared/errors/AppError';
 
 // HU8 – Finalizar compra (crea pedido desde carrito o ítems explícitos)
 export const crearPedido = async (
@@ -16,8 +17,23 @@ export const crearPedido = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const dto   = CrearPedidoSchema.parse(req.body);
-    const orden = await crearPedidoService(req.user.shop_id, req.user.id, dto);
+    const dto = CrearPedidoSchema.parse(req.body);
+    
+    // Si es un customer, forzamos su customer_id.
+    // Si es staff, puede pasarlo en el body.
+    let customerIdStr = dto.customer_id;
+    if (req.user.role === 'customer') {
+      customerIdStr = req.user.customer_id;
+    }
+
+    const dtoConCustomer = { ...dto, customer_id: customerIdStr };
+
+    const orden = await crearPedidoService(
+      req.user.shop_id,
+      req.user.id,                    // userId (quien ejecuta la acción)
+      req.user.customer_id ?? null,   // Si es un customer, usamos su customer_id para vaciar SU carrito
+      dtoConCustomer
+    );
     sendCreated(res, orden);
   } catch (err) {
     next(err);
@@ -47,6 +63,11 @@ export const obtenerPedido = async (
 ): Promise<void> => {
   try {
     const orden = await obtenerPedidoService(req.user.shop_id, req.params['id']!);
+    
+    if (req.user.role === 'customer' && orden.customer_id !== req.user.customer_id) {
+       throw new ForbiddenError('No tienes permiso para ver este pedido.');
+    }
+
     sendSuccess(res, orden);
   } catch (err) {
     next(err);

@@ -102,7 +102,10 @@ export const adjustStock = async (
       return;
     }
 
-    const product = await adjustStockService(req.user.shop_id, req.params['id']!, delta);
+    const { notas } = req.body as { delta: unknown; notas?: string };
+    const product = await adjustStockService(
+      req.user.shop_id, req.params['id']!, delta, req.user.id, 'adjustment', notas
+    );
     sendSuccess(res, product);
   } catch (err) {
     next(err);

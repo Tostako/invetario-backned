@@ -19,7 +19,7 @@ export type ActualizarItemDto = z.infer<typeof ActualizarItemSchema>;
 export interface CartItem {
   id:          string;
   shop_id:     string;
-  user_id:     string;
+  customer_id: string;
   product_id:  string;
   quantity:    number;
   created_at:  string;
