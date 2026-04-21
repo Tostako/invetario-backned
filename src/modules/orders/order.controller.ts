@@ -8,7 +8,8 @@ import {
   obtenerPedidoService,
   actualizarEstadoService,
 } from './order.service';
-import { ForbiddenError } from '../../shared/errors/AppError';
+import { findShopOrderActorUserId } from './order.repository';
+import { ForbiddenError, ValidationError } from '../../shared/errors/AppError';
 
 // HU8 – Finalizar compra (crea pedido desde carrito o ítems explícitos)
 export const crearPedido = async (
@@ -28,9 +29,21 @@ export const crearPedido = async (
 
     const dtoConCustomer = { ...dto, customer_id: customerIdStr };
 
+    // customers.id ≠ users.id: la BD exige users.id en created_by e inventory_movements.
+    let dbUserIdForAudit = req.user.id;
+    if (req.user.role === 'customer') {
+      const actorId = await findShopOrderActorUserId(req.user.shop_id);
+      if (!actorId) {
+        throw new ValidationError(
+          'La tienda no tiene un usuario activo para registrar el pedido en auditoría.'
+        );
+      }
+      dbUserIdForAudit = actorId;
+    }
+
     const orden = await crearPedidoService(
       req.user.shop_id,
-      req.user.id,                    // userId (quien ejecuta la acción)
+      dbUserIdForAudit,
       req.user.customer_id ?? null,   // Si es un customer, usamos su customer_id para vaciar SU carrito
       dtoConCustomer
     );

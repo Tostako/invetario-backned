@@ -28,6 +28,18 @@ interface CrearPedidoParams {
   notes:       string | null;
 }
 
+/** users.id de la tienda para auditoría (orders.created_by, inventory_movements). */
+export const findShopOrderActorUserId = async (shopId: string): Promise<string | null> => {
+  const result = await query<{ id: string }>(
+    `SELECT id FROM users
+     WHERE shop_id = $1 AND is_active = TRUE
+     ORDER BY CASE role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, created_at ASC
+     LIMIT 1`,
+    [shopId]
+  );
+  return result.rows[0]?.id ?? null;
+};
+
 // ─── Crear pedido — delegado completamente a la BD ───────────────────────────
 
 export const crearOrden = async (
