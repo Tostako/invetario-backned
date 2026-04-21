@@ -92,9 +92,12 @@ CREATE OR REPLACE FUNCTION sp_agregar_al_carrito(
 DECLARE
   v_produto RECORD;
 BEGIN
-  SELECT id, name, price, stock, is_active
+  -- Nota: en PL/pgSQL los nombres del RETURNS TABLE (p.ej. "id") son variables.
+  -- Por eso debemos calificar columnas de tablas para evitar "column reference ... is ambiguous".
+  SELECT p.id, p.name, p.price, p.stock, p.is_active
   INTO v_produto
-  FROM products WHERE id = p_product_id AND shop_id = p_shop_id;
+  FROM products p
+  WHERE p.id = p_product_id AND p.shop_id = p_shop_id;
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'PRODUCT_NOT_FOUND' USING ERRCODE = 'P0002';
@@ -108,7 +111,7 @@ BEGIN
 
   INSERT INTO cart_items (shop_id, customer_id, product_id, quantity)
   VALUES (p_shop_id, p_customer_id, p_product_id, p_quantity)
-  ON CONFLICT (customer_id, product_id, shop_id)
+  ON CONFLICT ON CONSTRAINT cart_items_customer_product_unique
   DO UPDATE SET
     quantity   = cart_items.quantity + EXCLUDED.quantity,
     updated_at = NOW();
@@ -156,7 +159,9 @@ BEGIN
 
   UPDATE cart_items
   SET quantity = p_quantity, updated_at = NOW()
-  WHERE id = p_item_id AND shop_id = p_shop_id AND customer_id = p_customer_id;
+  WHERE cart_items.id = p_item_id
+    AND cart_items.shop_id = p_shop_id
+    AND cart_items.customer_id = p_customer_id;
 
   -- Retornar el ítem actualizado con datos del producto
   RETURN QUERY SELECT * FROM fn_obtener_item_carrito(p_shop_id, p_customer_id, p_item_id);
