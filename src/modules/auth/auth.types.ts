@@ -12,8 +12,13 @@ export const RegisterShopSchema = z.object({
 export const LoginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  shop_slug: z.string().min(1),  // identifica el tenant en el login
 });
+
+export const SelectShopSchema = z.object({
+  shop_id: z.string().uuid(),
+});
+
+export type SelectShopDto = z.infer<typeof SelectShopSchema>;
 
 export const RegisterCustomerSchema = z.object({
   name: z.string().min(2).max(150),
@@ -29,6 +34,14 @@ export const LoginCustomerSchema = z.object({
   password: z.string().min(1),
   shop_slug: z.string().min(1),
 });
+
+export const CreateAdditionalShopSchema = z.object({
+  shop_name: z.string().min(2).max(150),
+  shop_slug: z.string().min(2).max(60).regex(/^[a-z0-9-]+$/, 'Only lowercase letters, numbers and hyphens'),
+  shop_email: z.string().email(),
+});
+
+export type CreateAdditionalShopDto = z.infer<typeof CreateAdditionalShopSchema>;
 
 export type RegisterShopDto = z.infer<typeof RegisterShopSchema>;
 export type LoginDto = z.infer<typeof LoginSchema>;

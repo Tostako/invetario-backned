@@ -10,10 +10,12 @@ declare global {
     interface Request {
       user: {
         id: string;
-        shop_id: string;       // OBLIGATORIO para roles de tienda; vacío '' para superadmin
+        shop_id: string;       // OBLIGATORIO para roles de tienda; vacío '' para superadmin o pending
         email: string;
         role: UserRole;
         customer_id?: string;  // Solo presente cuando role === 'customer'
+        /** Presente en JWT de empleados tras login; usado para revocar sesiones. */
+        jti?: string;
       };
     }
   }

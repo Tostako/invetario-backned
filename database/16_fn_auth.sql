@@ -28,6 +28,26 @@ CREATE OR REPLACE FUNCTION fn_buscar_usuario_login(
     AND  s.is_active = TRUE;
 $func$;
 
+-- ─── Buscar todos los usuarios/tiendas por email ──────────────────────────────
+
+CREATE OR REPLACE FUNCTION fn_buscar_usuarios_por_email(
+  p_email CITEXT
+) RETURNS TABLE (
+  user_id   UUID,
+  shop_id   UUID,
+  shop_name VARCHAR,
+  shop_slug CITEXT,
+  role      VARCHAR,
+  password  VARCHAR, -- necesaria para verificar en el primer paso
+  is_active BOOLEAN
+) LANGUAGE sql STABLE AS $func$
+  SELECT u.id, u.shop_id, s.name, s.slug, u.role, u.password, u.is_active
+  FROM   users u
+  JOIN   shops s ON s.id = u.shop_id
+  WHERE  u.email = p_email
+    AND  s.is_active = TRUE;
+$func$;
+
 -- ─── Registrar tienda + owner (transacción atómica) ──────────────────────────
 
 CREATE OR REPLACE FUNCTION sp_registrar_tienda(

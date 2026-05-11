@@ -17,16 +17,34 @@ import {
   softDeleteProduct,
   adjustStock,
 } from './product.repository';
-import { CreateProductDto, UpdateProductDto, ProductFilter, Product } from './product.types';
+import {
+  CreateProductDto,
+  UpdateProductDto,
+  ProductFilter,
+  Product,
+  ProductoConEstado,
+  EstadoStock,
+} from './product.types';
 import { traducirErrorDB } from '../../shared/utils/dbErrors';
+
+const calcularEstadoStock = (stock: number, stockMin: number): EstadoStock => {
+  if (stock <= 0) return 'sin_stock';
+  if (stock <= stockMin) return 'bajo';
+  return 'ok';
+};
+
+const conEstadoStock = (p: Product): ProductoConEstado => ({
+  ...p,
+  estado_stock: calcularEstadoStock(p.stock, p.stock_min),
+});
 
 export const listProductsService = async (
   shopId: string,
   filter: ProductFilter
-): Promise<{ products: Product[]; meta: PaginationMeta }> => {
+): Promise<{ products: ProductoConEstado[]; meta: PaginationMeta }> => {
   const { rows, total } = await findAllProducts(shopId, filter);
   return {
-    products: rows,
+    products: rows.map(conEstadoStock),
     meta: {
       total,
       page:       filter.page,
@@ -39,18 +57,18 @@ export const listProductsService = async (
 export const getProductService = async (
   shopId: string,
   productId: string
-): Promise<Product> => {
+): Promise<ProductoConEstado> => {
   const product = await findProductById(shopId, productId);
   if (!product) throw new NotFoundError('Producto');
-  return product;
+  return conEstadoStock(product);
 };
 
 export const createProductService = async (
   shopId: string,
   dto: CreateProductDto
-): Promise<Product> => {
+): Promise<ProductoConEstado> => {
   try {
-    return await createProduct(shopId, dto);
+    return conEstadoStock(await createProduct(shopId, dto));
   } catch (err) {
     throw traducirErrorDB(err, {
       SKU_DUPLICADO: () => new ConflictError(`SKU "${dto.sku.toUpperCase()}" ya existe en esta tienda`),
@@ -63,11 +81,11 @@ export const updateProductService = async (
   shopId: string,
   productId: string,
   dto: UpdateProductDto
-): Promise<Product> => {
+): Promise<ProductoConEstado> => {
   try {
     const updated = await updateProduct(shopId, productId, dto);
     if (!updated) throw new NotFoundError('Producto');
-    return updated;
+    return conEstadoStock(updated);
   } catch (err) {
     throw traducirErrorDB(err, {
       PRODUCT_NOT_FOUND:  () => new NotFoundError('Producto'),
@@ -97,11 +115,11 @@ export const adjustStockService = async (
   userId: string,
   tipo?: string,
   notas?: string
-): Promise<Product> => {
+): Promise<ProductoConEstado> => {
   try {
     const updated = await adjustStock(shopId, productId, delta, userId, tipo, undefined, notas);
     if (!updated) throw new NotFoundError('Producto');
-    return updated;
+    return conEstadoStock(updated);
   } catch (err) {
     throw traducirErrorDB(err, {
       PRODUCT_NOT_FOUND: () => new NotFoundError('Producto'),

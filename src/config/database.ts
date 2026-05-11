@@ -2,12 +2,14 @@ import { Pool, PoolClient, QueryResultRow } from 'pg';
 import { env } from './env';
 
 // Pool de conexiones — reutiliza conexiones en lugar de abrir una por request
+const isSupabase = env.db.url.includes('supabase.co') || env.db.url.includes('supabase.com');
+
 const pool = new Pool({
   connectionString: env.db.url,
   max: 20,           // máximo de conexiones simultáneas
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 2_000,
-  ssl: env.isDev ? false : { rejectUnauthorized: false },
+  connectionTimeoutMillis: 5_000,
+  ssl: isSupabase ? { rejectUnauthorized: false } : (env.isDev ? false : { rejectUnauthorized: false }),
 });
 
 pool.on('error', (err) => {

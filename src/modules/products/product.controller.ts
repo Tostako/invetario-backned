@@ -14,6 +14,8 @@ import {
   deleteProductService,
   adjustStockService,
 } from './product.service';
+import { supabase } from '../../config/supabase';
+import path from 'path';
 
 // Los controllers son delgados: parsear → llamar service → responder.
 // No contienen lógica de negocio ni queries SQL.
@@ -45,13 +47,40 @@ export const getProduct = async (
   }
 };
 
+// Helper para subir a Supabase Storage
+const uploadToSupabase = async (file: Express.Multer.File, shopId: string): Promise<string> => {
+  const fileName = `${shopId}/${Date.now()}-${path.basename(file.originalname)}`;
+  const { data, error } = await supabase.storage
+    .from('product-images')
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Supabase Storage error: ${error.message}`);
+  }
+
+  const { data: { publicUrl } } = supabase.storage
+    .from('product-images')
+    .getPublicUrl(data.path);
+
+  return publicUrl;
+};
+
 export const createProduct = async (
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const dto = CreateProductSchema.parse(req.body);
+    const data = { ...req.body };
+    
+    if (req.file) {
+      data.image_url = await uploadToSupabase(req.file, req.user.shop_id);
+    }
+
+    const dto = CreateProductSchema.parse(data);
     const product = await createProductService(req.user.shop_id, dto);
     sendCreated(res, product);
   } catch (err) {
@@ -65,7 +94,13 @@ export const updateProduct = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const dto = UpdateProductSchema.parse(req.body);
+    const data = { ...req.body };
+
+    if (req.file) {
+      data.image_url = await uploadToSupabase(req.file, req.user.shop_id);
+    }
+
+    const dto = UpdateProductSchema.parse(data);
     const product = await updateProductService(req.user.shop_id, req.params['id']!, dto);
     sendSuccess(res, product);
   } catch (err) {

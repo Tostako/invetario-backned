@@ -3,56 +3,57 @@
 // El trigger trg_pago_aprobado_confirma_pedido (BD) actualiza
 // automáticamente el estado del pedido al aprobarse el pago.
 // Funciones definidas en: database/21_fn_payments.sql
+// Migración estática:    database/27_payments_estaticos.sql
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { query } from '../../config/database';
 import { Payment } from './payment.types';
 
 interface InsertarPagoParams {
-  shopId:              string;
-  orderId:             string;
-  mpPaymentId:         number | null;
-  method:              'card' | 'pse';
-  status:              string;
-  statusDetail:        string | null;
-  transactionAmount:   number;
-  externalResourceUrl: string | null;
-  rawResponse:         unknown;
+  shopId:            string;
+  orderId:           string;
+  method:            string;
+  transactionAmount: number;
+  status:            string;
+  statusDetail:      string | null;
+  notes:             string | null;
 }
 
 export const insertarPago = async (params: InsertarPagoParams): Promise<Payment> => {
   const result = await query<Payment>(
-    `SELECT * FROM sp_insertar_pago($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
+    `SELECT * FROM sp_insertar_pago($1, $2, $3, $4, $5, $6)`,
     [
       params.shopId,
       params.orderId,
-      params.mpPaymentId,
       params.method,
+      params.transactionAmount,
       params.status,
       params.statusDetail,
-      params.transactionAmount,
-      params.externalResourceUrl,
-      JSON.stringify(params.rawResponse),
     ]
   );
   return result.rows[0]!;
 };
 
 export const actualizarEstadoPago = async (
-  mpPaymentId: number,
-  status: string,
-  statusDetail: string | null,
-  rawResponse: unknown
+  shopId:      string,
+  paymentId:   string,
+  status:      string,
+  statusDetail: string | null
 ): Promise<Payment | null> => {
   const result = await query<Payment>(
-    `SELECT * FROM sp_actualizar_estado_pago($1, $2, $3, $4::jsonb)`,
-    [mpPaymentId, status, statusDetail, JSON.stringify(rawResponse)]
+    `UPDATE payments
+     SET status        = $3,
+         status_detail = $4,
+         updated_at    = NOW()
+     WHERE id = $2 AND shop_id = $1
+     RETURNING *`,
+    [shopId, paymentId, status, statusDetail]
   );
   return result.rows[0] ?? null;
 };
 
 export const findPaymentByOrder = async (
-  shopId: string,
+  shopId:  string,
   orderId: string
 ): Promise<Payment | null> => {
   const result = await query<Payment>(
@@ -63,7 +64,7 @@ export const findPaymentByOrder = async (
 };
 
 export const findPaymentById = async (
-  shopId: string,
+  shopId:    string,
   paymentId: string
 ): Promise<Payment | null> => {
   const result = await query<Payment>(
@@ -71,4 +72,21 @@ export const findPaymentById = async (
     [shopId, paymentId]
   );
   return result.rows[0] ?? null;
+};
+
+export const listarPagosPorTienda = async (
+  shopId: string,
+  limit   = 50,
+  offset  = 0
+): Promise<Payment[]> => {
+  const result = await query<Payment>(
+    `SELECT p.*, o.order_number
+     FROM payments p
+     JOIN orders o ON o.id = p.order_id AND o.shop_id = p.shop_id
+     WHERE p.shop_id = $1
+     ORDER BY p.created_at DESC
+     LIMIT $2 OFFSET $3`,
+    [shopId, limit, offset]
+  );
+  return result.rows;
 };

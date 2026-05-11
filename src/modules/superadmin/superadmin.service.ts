@@ -20,6 +20,7 @@ import {
   UpdateShopDto,
 } from './superadmin.types';
 import { calcOffset } from '../../shared/utils/pagination';
+import { handlePgConflict } from '../../shared/utils/errors';
 
 // Token de superadmin sin shop_id — el middleware lo acepta por el rol
 const signSuperAdminToken = (id: string, email: string): string =>
@@ -73,14 +74,7 @@ export const registrarSuperAdminService = async (
     const token = signSuperAdminToken(admin.id, dto.email);
     return { token, adminId: admin.id };
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      'code' in err &&
-      (err as NodeJS.ErrnoException).code === '23505'
-    ) {
-      throw new ConflictError('Email ya existe');
-    }
-    throw err;
+    handlePgConflict(err, 'Email ya existe');
   }
 };
 
@@ -96,14 +90,7 @@ export const bootstrapSuperAdminService = async (dto: RegisterSuperAdminDto) => 
     const token = signSuperAdminToken(admin.id, dto.email);
     return { token, adminId: admin.id };
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      'code' in err &&
-      (err as NodeJS.ErrnoException).code === '23505'
-    ) {
-      throw new ConflictError('Email ya existe');
-    }
-    throw err;
+    handlePgConflict(err, 'Email ya existe');
   }
 };
 
@@ -126,14 +113,7 @@ export const crearTiendaService = async (dto: CreateShopDto) => {
   try {
     return await crearTienda(dto);
   } catch (err: unknown) {
-    if (
-      err instanceof Error &&
-      'code' in err &&
-      (err as NodeJS.ErrnoException).code === '23505'
-    ) {
-      throw new ConflictError('Slug o email de tienda ya existe');
-    }
-    throw err;
+    handlePgConflict(err, 'El slug o email de la tienda ya existe');
   }
 };
 

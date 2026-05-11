@@ -3,12 +3,14 @@ import { authenticate } from '../../middlewares/authenticate';
 import { authorize } from '../../middlewares/authorize';
 import { tenantGuard } from '../../middlewares/tenantGuard';
 import { validateUuid } from '../../middlewares/validateUuid';
+import { upload } from '../../middlewares/upload';
 import {
   listCategories,
   getCategory,
   createCategory,
   updateCategory,
   deleteCategory,
+  subirImagenCategoria,
 } from './category.controller';
 
 // Cadena de seguridad por capa:
@@ -45,7 +47,17 @@ router.get('/:id',
 router.patch('/:id',
   validateUuid('id'),
   authorize('admin', 'owner'),
+  upload.single('image'),
   updateCategory
+);
+
+// Subir imagen de categoría
+router.patch(
+  '/:id/image',
+  validateUuid('id'),
+  authorize('admin', 'owner'),
+  upload.single('image'),
+  subirImagenCategoria
 );
 
 // HU14: Eliminar categoría — solo owner

@@ -26,6 +26,21 @@ export const findAllCategories = async (
   };
 };
 
+/** Nombres activos coincidentes (sin distinguir mayúsculas). Puede devolver varias filas si hay duplicados de nombre. */
+export const buscarIdsCategoriaActivaPorNombre = async (
+  shopId: string,
+  nombre: string
+): Promise<string[]> => {
+  const result = await query<{ id: string }>(
+    `SELECT id FROM categories
+     WHERE shop_id = $1 AND is_active = TRUE
+       AND lower(trim(name)) = lower(trim($2))
+     ORDER BY created_at ASC`,
+    [shopId, nombre]
+  );
+  return result.rows.map((r) => r.id);
+};
+
 export const findCategoryById = async (
   shopId: string,
   categoryId: string
@@ -63,6 +78,18 @@ export const updateCategory = async (
       dto.is_active   ?? null,
       dto.parent_id   ?? null,
     ]
+  );
+  return result.rows[0] ?? null;
+};
+
+export const actualizarImagenCategoria = async (
+  shopId: string,
+  categoryId: string,
+  imageUrl: string
+): Promise<Category | null> => {
+  const result = await query<Category>(
+    `SELECT * FROM sp_actualizar_categoria($1, $2, $3, $4, $5, $6, $7)`,
+    [shopId, categoryId, null, null, null, null, imageUrl]
   );
   return result.rows[0] ?? null;
 };

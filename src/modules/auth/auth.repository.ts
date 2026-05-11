@@ -23,6 +23,34 @@ export const findUserByEmailAndShop = async (email: string, shopSlug: string) =>
   return result.rows[0] ?? null;
 };
 
+export const findUsersByEmail = async (email: string) => {
+  const result = await query<{
+    user_id: string;
+    shop_id: string;
+    shop_name: string;
+    shop_slug: string;
+    user_name: string;
+    role: string;
+    password: string;
+    is_active: boolean;
+  }>(
+    `SELECT * FROM fn_buscar_usuarios_por_email($1)`,
+    [email.toLowerCase()]
+  );
+  return result.rows;
+};
+
+export const findUserByIdAndShop = async (userId: string, shopId: string) => {
+  const result = await query<{
+    id: string; shop_id: string; email: string;
+    name: string; role: string; is_active: boolean;
+  }>(
+    `SELECT id, shop_id, email, name, role, is_active FROM users WHERE id = $1 AND shop_id = $2`,
+    [userId, shopId]
+  );
+  return result.rows[0] ?? null;
+};
+
 export const createShopWithOwner = async (dto: RegisterShopDto) => {
   const hashedPassword = await bcrypt.hash(dto.password, 12);
   const result = await query<{ shop_id: string; user_id: string }>(
@@ -75,3 +103,16 @@ export const createCustomer = async (dto: RegisterCustomerDto) => {
 
 export const updateCustomerLastLogin = (customerId: string): Promise<void> =>
   query(`SELECT sp_actualizar_ultimo_login_customer($1)`, [customerId]).then(() => undefined);
+export const createShopForExistingUser = async (userId: string, dto: { shop_name: string; shop_slug: string; shop_email: string }) => {
+  const result = await query<{ shop_id: string; user_id: string }>(
+    `SELECT * FROM sp_crear_tienda_para_user_existente($1, $2, $3, $4)`,
+    [
+      dto.shop_name,
+      dto.shop_slug,
+      dto.shop_email.toLowerCase(),
+      userId,
+    ]
+  );
+  const row = result.rows[0]!;
+  return { shopId: row.shop_id, userId: row.user_id };
+};
