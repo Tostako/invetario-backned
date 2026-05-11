@@ -6,6 +6,7 @@ import { validateUuid } from '../../middlewares/validateUuid';
 import {
   crearPedido,
   listarPedidos,
+  listarMisPedidos,
   obtenerPedido,
   actualizarEstado,
 } from './order.controller';
@@ -19,6 +20,9 @@ router.post('/', crearPedido);
 
 // HU9 – Listar pedidos (admin y owner)
 router.get('/', authorize('admin', 'owner'), listarPedidos);
+
+// Listar mis pedidos (customer autenticado)
+router.get('/my-orders', listarMisPedidos);
 
 // Detalle de un pedido
 router.get('/:id', validateUuid('id'), obtenerPedido);

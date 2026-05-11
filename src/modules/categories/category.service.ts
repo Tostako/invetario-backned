@@ -12,9 +12,12 @@ import {
   createCategory,
   updateCategory,
   softDeleteCategory,
+  actualizarImagenCategoria,
 } from './category.repository';
 import { CreateCategoryDto, UpdateCategoryDto, CategoryFilter, Category } from './category.types';
 import { traducirErrorDB } from '../../shared/utils/dbErrors';
+import { supabase } from '../../config/supabase';
+import path from 'path';
 
 export const listCategoriesService = async (
   shopId: string,
@@ -71,6 +74,33 @@ export const updateCategoryService = async (
         new ConflictError(`Ya existe una categoría con el nombre "${dto.name}" en esta tienda`),
     });
   }
+};
+
+export const subirImagenCategoriaService = async (
+  shopId: string,
+  categoryId: string,
+  file: Express.Multer.File
+): Promise<Category> => {
+  const fileName = `${shopId}/${Date.now()}-${path.basename(file.originalname)}`;
+
+  const { data, error } = await supabase.storage
+    .from('category-images')
+    .upload(fileName, file.buffer, {
+      contentType: file.mimetype,
+      upsert: true,
+    });
+
+  if (error) {
+    throw new Error(`Supabase Storage error: ${error.message}`);
+  }
+
+  const { data: publicData } = supabase.storage
+    .from('category-images')
+    .getPublicUrl(data.path);
+
+  const categoria = await actualizarImagenCategoria(shopId, categoryId, publicData.publicUrl);
+  if (!categoria) throw new NotFoundError('Categoría');
+  return categoria;
 };
 
 export const deleteCategoryService = async (

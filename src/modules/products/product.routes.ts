@@ -11,6 +11,7 @@ import {
   deleteProduct,
   adjustStock,
 } from './product.controller';
+import { upload } from '../../middlewares/upload';
 
 // Cadena de seguridad por capa:
 //   1. authenticate  → JWT válido + extrae shop_id
@@ -28,6 +29,7 @@ router.get('/', listProducts);
 
 router.post('/',
   authorize('admin', 'owner'),
+  upload.single('image'),
   createProduct
 );
 
@@ -40,6 +42,7 @@ router.get('/:id',
 router.patch('/:id',
   validateUuid('id'),
   authorize('admin', 'owner'),
+  upload.single('image'),
   updateProduct
 );
 

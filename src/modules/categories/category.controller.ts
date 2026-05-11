@@ -1,6 +1,7 @@
 import { Response, NextFunction } from 'express';
 import { AuthenticatedRequest } from '../../shared/types';
 import { sendSuccess, sendCreated } from '../../shared/utils/response';
+import { ValidationError } from '../../shared/errors/AppError';
 import {
   CreateCategorySchema,
   UpdateCategorySchema,
@@ -12,6 +13,7 @@ import {
   createCategoryService,
   updateCategoryService,
   deleteCategoryService,
+  subirImagenCategoriaService,
 } from './category.service';
 
 // Los controllers son delgados: parsear → llamar service → responder.
@@ -69,7 +71,16 @@ export const updateCategory = async (
 ): Promise<void> => {
   try {
     const dto = UpdateCategorySchema.parse(req.body);
-    const categoria = await updateCategoryService(req.user.shop_id, req.params['id']!, dto);
+    let categoria = await updateCategoryService(req.user.shop_id, req.params['id']!, dto);
+
+    if (req.file) {
+      categoria = await subirImagenCategoriaService(
+        req.user.shop_id,
+        req.params['id']!,
+        req.file
+      );
+    }
+
     sendSuccess(res, categoria);
   } catch (err) {
     next(err);
@@ -85,6 +96,27 @@ export const deleteCategory = async (
   try {
     await deleteCategoryService(req.user.shop_id, req.params['id']!);
     sendSuccess(res, { message: 'Categoría desactivada correctamente' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const subirImagenCategoria = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.file) {
+      throw new ValidationError('Debe enviar una imagen para la categoría');
+    }
+
+    const categoria = await subirImagenCategoriaService(
+      req.user.shop_id,
+      req.params['id']!,
+      req.file
+    );
+    sendSuccess(res, categoria);
   } catch (err) {
     next(err);
   }

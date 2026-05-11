@@ -21,17 +21,17 @@ export const findAllProducts = async (
     `SELECT * FROM fn_listar_productos($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
       shopId,
-      filter.search      ?? null,
+      filter.search ?? null,
       filter.category_id ?? null,
       filter.supplier_id ?? null,
-      filter.low_stock   ?? false,
-      filter.is_active   ?? true,
+      filter.low_stock ?? false,
+      filter.is_active ?? true,
       filter.limit,
       offset,
     ]
   );
   return {
-    rows:  result.rows,
+    rows: result.rows,
     total: result.rows.length > 0 ? parseInt(result.rows[0]!.total_count) : 0,
   };
 };
@@ -60,12 +60,12 @@ export const createProduct = async (
       dto.price,
       dto.stock,
       dto.stock_min,
-      dto.description  ?? null,
-      dto.image_url    ?? null,
-      dto.category_id  ?? null,
-      dto.supplier_id  ?? null,
-      dto.cost         ?? null,
-      dto.stock_max    ?? null,
+      dto.description ?? null,
+      dto.image_url ?? null,
+      dto.category_id ?? null,
+      dto.supplier_id ?? null,
+      dto.cost ?? null,
+      dto.stock_max ?? null,
       dto.unit,
     ]
   );
@@ -82,17 +82,17 @@ export const updateProduct = async (
     [
       shopId,
       productId,
-      dto.sku         ?? null,
-      dto.name        ?? null,
+      dto.sku ?? null,
+      dto.name ?? null,
       dto.description ?? null,
-      dto.image_url   ?? null,
+      dto.image_url ?? null,
       dto.category_id ?? null,
       dto.supplier_id ?? null,
-      dto.price       ?? null,
-      dto.cost        ?? null,
-      dto.stock       ?? null,
-      dto.stock_min   ?? null,
-      dto.stock_max   ?? null,
+      dto.price ?? null,
+      dto.cost ?? null,
+      dto.stock ?? null,
+      dto.stock_min ?? null,
+      dto.stock_max ?? null,
     ]
   );
   return result.rows[0] ?? null;

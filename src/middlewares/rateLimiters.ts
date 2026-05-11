@@ -3,13 +3,13 @@ import rateLimit from 'express-rate-limit';
 // Rate limiter estricto para endpoints de autenticación.
 // Limita intentos de brute-force en login sin necesidad de bloquear IPs globalmente.
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutos
+  windowMs: 5 * 60 * 1000, // 5 minutos
   max: 10,                   // 10 intentos por IP por ventana
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many authentication attempts. Please try again in 15 minutes.',
+    message: 'Demasiados intentos de autenticación. Por favor, inténtalo de nuevo en 5 minutos.',
   },
   // Distinguir por IP: evita que un atacante bloquee a otro usuario legítimo
   keyGenerator: (req) => req.ip ?? 'unknown',

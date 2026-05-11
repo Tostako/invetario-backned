@@ -68,6 +68,24 @@ export const listarPedidos = async (
   }
 };
 
+// Listar pedidos del cliente autenticado
+export const listarMisPedidos = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const filtros = FiltrosPedidoSchema.parse({
+      ...req.query,
+      customer_id: req.user.customer_id ?? req.user.id,
+    });
+    const { pedidos, meta } = await listarPedidosService(req.user.shop_id, filtros);
+    sendSuccess(res, pedidos, 200, meta);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // Obtener detalle de un pedido
 export const obtenerPedido = async (
   req: AuthenticatedRequest,
