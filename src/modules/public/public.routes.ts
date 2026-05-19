@@ -5,6 +5,7 @@ import {
   listPublicProducts,
   getPublicProduct,
   listPublicCategories,
+  listPublicOffers,
 } from './public.controller';
 
 const router = Router();
@@ -18,5 +19,8 @@ router.get('/products/:id', validateUuid('id'), getPublicProduct);
 
 // ─── Categorías públicas ──────────────────────────────────────────────────────
 router.get('/categories', listPublicCategories);
+
+// ─── Ofertas públicas ─────────────────────────────────────────────────────────
+router.get('/offers', listPublicOffers);
 
 export { router as publicRouter };

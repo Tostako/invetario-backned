@@ -18,6 +18,7 @@ import { customerRouter } from './modules/customers/customer.routes';
 import { shopRouter } from './modules/shop/shop.routes';
 import { userRouter } from './modules/users/user.routes';
 import { publicRouter } from './modules/public/public.routes';
+import { offerRouter } from './modules/offers/offer.routes';
 import { authenticate } from './middlewares/authenticate';
 import { createAdditionalShop } from './modules/auth/auth.controller';
 
@@ -66,6 +67,7 @@ app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/payments', paymentRouter);
 app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/offers', offerRouter);
 app.use('/api/v1/admin', superAdminRouter);
 
 // Gestión de múltiples tiendas para un usuario

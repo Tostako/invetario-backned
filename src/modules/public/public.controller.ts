@@ -11,6 +11,7 @@ import {
   listCategoriesService,
 } from '../categories/category.service';
 import { buscarIdsCategoriaActivaPorNombre } from '../categories/category.repository';
+import { listPublicOffersService } from '../offers/offer.service';
 import { esUuidV4 } from '../../shared/utils/uuidV4';
 import { ValidationError } from '../../shared/errors/AppError';
 
@@ -78,6 +79,21 @@ export const listPublicCategories = async (
     const publicFilter = { ...filter, is_active: true };
     const { categorias, meta } = await listCategoriesService(req.user.shop_id, publicFilter);
     sendSuccess(res, categorias, 200, meta);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── Ofertas Públicas ─────────────────────────────────────────────────────────
+
+export const listPublicOffers = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const offers = await listPublicOffersService(req.user.shop_id);
+    sendSuccess(res, offers);
   } catch (err) {
     next(err);
   }
