@@ -1,0 +1,23 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.userRouter = void 0;
+const express_1 = require("express");
+const authenticate_1 = require("../../middlewares/authenticate");
+const tenantGuard_1 = require("../../middlewares/tenantGuard");
+const requireShopStaff_1 = require("../../middlewares/requireShopStaff");
+const validateUuid_1 = require("../../middlewares/validateUuid");
+const user_controller_1 = require("./user.controller");
+const router = (0, express_1.Router)();
+exports.userRouter = router;
+router.use(authenticate_1.authenticate, tenantGuard_1.tenantGuard, requireShopStaff_1.requireShopStaff);
+router.get('/me', user_controller_1.obtenerPerfil);
+router.patch('/me', user_controller_1.actualizarPerfil);
+router.patch('/me/password', user_controller_1.cambiarPassword);
+router.get('/notifications', user_controller_1.obtenerPreferencias);
+router.patch('/notifications', user_controller_1.actualizarPreferencias);
+router.get('/sessions', user_controller_1.listarSesiones);
+router.delete('/sessions/:sessionId', (0, validateUuid_1.validateUuid)('sessionId'), user_controller_1.eliminarSesion);
+router.post('/me/2fa/setup', user_controller_1.setup2fa);
+router.post('/me/2fa/enable', user_controller_1.enable2fa);
+router.post('/me/2fa/disable', user_controller_1.disable2fa);
+//# sourceMappingURL=user.routes.js.map
