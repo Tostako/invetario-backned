@@ -1,0 +1,159 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Compose — SaaS Inventario Tiendas + Servicios
+# ──────────────────────────────────────────────────────────────────────────────
+# Orquesta el backend junto con PostgreSQL para desarrollo local.
+# Facilmente extensible para añadir más apps (frontend, redis, etc.)
+#
+# Comandos útiles:
+#   docker-compose up -d              → Iniciar todos los servicios
+#   docker-compose up -d backend      → Iniciar solo el backend
+#   docker-compose logs -f backend    → Ver logs del backend
+#   docker-compose down                 → Detener y eliminar contenedores
+#   docker-compose down -v            → Detener y eliminar volúmenes (cuidado!)
+#   docker-compose build              → Reconstruir imágenes
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: "3.8"
+
+services:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 1. BACKEND — SaaS Inventario Tiendas (Node.js + Express)
+  # ═══════════════════════════════════════════════════════════════════════════
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: saas-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      # Variables críticas (sobreescribir en .env o docker-compose.override.yml)
+      NODE_ENV: production
+      PORT: 3000
+      DB_URL: ${DB_URL}
+      JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_KEY: ${SUPABASE_KEY}
+      SUPABASE_SERVICE_ROLE: ${SUPABASE_SERVICE_ROLE}
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+    env_file:
+      - .env
+    volumes:
+      # Persistir uploads entre reinicios
+      - uploads-data:/app/uploads
+    networks:
+      - saas-network
+    depends_on:
+      - postgres
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 2. POSTGRESQL — Base de datos local (opcional, para desarrollo)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Si usas Supabase en la nube, puedes comentar este servicio.
+  # Si prefieres PostgreSQL local, descomenta y usa DB_URL apuntando aquí.
+  #
+  postgres:
+    image: postgres:16-alpine
+    container_name: saas-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-saas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-saas123}
+      POSTGRES_DB: ${POSTGRES_DB:-saas_db}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Si quieres auto-ejecutar los SQL al iniciar:
+      # - ./database:/docker-entrypoint-initdb.d
+    networks:
+      - saas-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-saas} -d ${POSTGRES_DB:-saas_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 3. REDIS — Cache / Sessions / Rate Limiting (opcional)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Descomenta si necesitas cache o sesiones distribuidas en el futuro.
+  #
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: saas-redis
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis-data:/data
+  #   networks:
+  #     - saas-network
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 4. FRONTEND — Panel Admin / Landing Page (opcional)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Descomenta y ajusta el context/build si tienes un frontend en otra carpeta.
+  # El build del frontend se sirve vía Nginx.
+  #
+  # frontend:
+  #   build:
+  #     context: ../frontend-cotizador   # ajusta la ruta
+  #     dockerfile: Dockerfile
+  #   container_name: saas-frontend
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #   depends_on:
+  #     - backend
+  #   networks:
+  #     - saas-network
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 5. NGINX — Reverse Proxy (opcional, para producción)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Descomenta si quieres un único punto de entrada que redirija
+  # /api → backend:3000 y el resto → frontend:80
+  #
+  # nginx:
+  #   image: nginx:alpine
+  #   container_name: saas-nginx
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./nginx/ssl:/etc/nginx/ssl:ro
+  #   depends_on:
+  #     - backend
+  #     - frontend
+  #   networks:
+  #     - saas-network
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Volúmenes persistentes
+# ═══════════════════════════════════════════════════════════════════════════════
+volumes:
+  postgres-data:
+    driver: local
+  uploads-data:
+    driver: local
+  # redis-data:
+  #   driver: local
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Red compartida entre todos los servicios
+# ═══════════════════════════════════════════════════════════════════════════════
+networks:
+  saas-network:
+    driver: bridge

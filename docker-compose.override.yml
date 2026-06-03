@@ -1,0 +1,27 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Docker Compose Override — Desarrollo Local
+# ──────────────────────────────────────────────────────────────────────────────
+# Este archivo se carga AUTOMÁTICAMENTE junto con docker-compose.yml.
+# Sirve para sobreescribir configuraciones en desarrollo sin modificar
+# el archivo principal.
+#
+# Ejemplo: usar tsx watch para hot-reload en lugar de la imagen compilada.
+# ──────────────────────────────────────────────────────────────────────────────
+
+version: "3.8"
+
+services:
+  # Override del backend para desarrollo
+  backend:
+    build:
+      target: builder  # Usar la imagen de build (con TypeScript)
+    command: ["npx", "tsx", "watch", "src/server.ts"]
+    environment:
+      NODE_ENV: development
+    volumes:
+      # Montar código fuente en vivo (hot-reload)
+      - .:/app
+      - /app/node_modules  # Evitar sobrescribir node_modules del contenedor
+    ports:
+      - "3000:3000"
+      - "9229:9229"  # Puerto para debugger de Node.js

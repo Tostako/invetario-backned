@@ -18,6 +18,12 @@ import { customerRouter } from './modules/customers/customer.routes';
 import { shopRouter } from './modules/shop/shop.routes';
 import { userRouter } from './modules/users/user.routes';
 import { publicRouter } from './modules/public/public.routes';
+import { offerRouter } from './modules/offers/offer.routes';
+import { siteConfigRouter } from './modules/site-config/site-config.routes';
+import { landingImageRouter } from './modules/landing-image/landing-image.routes';
+import { auditLogRouter } from './modules/audit-log/audit-log.routes';
+import { quoteRouter } from './modules/quotes/quote.routes';
+import { customerConfigRouter } from './modules/customer-config/customer-config.routes';
 import { authenticate } from './middlewares/authenticate';
 import { createAdditionalShop } from './modules/auth/auth.controller';
 
@@ -66,6 +72,12 @@ app.use('/api/v1/cart', cartRouter);
 app.use('/api/v1/orders', orderRouter);
 app.use('/api/v1/payments', paymentRouter);
 app.use('/api/v1/categories', categoryRouter);
+app.use('/api/v1/offers', offerRouter);
+app.use('/api/v1/site-config', siteConfigRouter);
+app.use('/api/v1/landing-images', landingImageRouter);
+app.use('/api/v1/audit-logs', auditLogRouter);
+app.use('/api/v1/quotes', quoteRouter);
+app.use('/api/v1/customer-config', customerConfigRouter);
 app.use('/api/v1/admin', superAdminRouter);
 
 // Gestión de múltiples tiendas para un usuario
