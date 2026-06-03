@@ -16,4 +16,8 @@ router.get('/products/:id', (0, validateUuid_1.validateUuid)('id'), public_contr
 router.get('/categories', public_controller_1.listPublicCategories);
 // ─── Ofertas públicas ─────────────────────────────────────────────────────────
 router.get('/offers', public_controller_1.listPublicOffers);
+// ─── Site Config público ──────────────────────────────────────────────────────
+router.get('/site-config', public_controller_1.listPublicSiteConfigs);
+// ─── Landing Images público ──────────────────────────────────────────────────
+router.get('/landing-images', public_controller_1.listPublicLandingImages);
 //# sourceMappingURL=public.routes.js.map

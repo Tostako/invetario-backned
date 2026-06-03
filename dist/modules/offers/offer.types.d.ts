@@ -241,5 +241,7 @@ export interface PublicOffer {
     ends_at: string;
     product_name?: string | null;
     category_name?: string | null;
+    product_image?: string | null;
+    product_price?: number | null;
 }
 //# sourceMappingURL=offer.types.d.ts.map

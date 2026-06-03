@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { query } from '../config/database';
 import { ForbiddenError } from '../shared/errors/AppError';
+import { esUuidV4 } from '../shared/utils/uuidV4';
 
 // Verifica que la tienda del token sigue existiendo y está activa.
 // Se ejecuta DESPUÉS de authenticate. Protege contra:
@@ -15,9 +16,15 @@ export const tenantGuard = async (
   next: NextFunction
 ): Promise<void> => {
   try {
+    const shopId = req.user?.shop_id;
+
+    if (!shopId || !esUuidV4(shopId)) {
+      throw new ForbiddenError('Invalid or missing shop identifier');
+    }
+
     const result = await query<{ is_active: boolean }>(
       'SELECT is_active FROM shops WHERE id = $1',
-      [req.user.shop_id]
+      [shopId]
     );
 
     const shop = result.rows[0];

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listPublicOffers = exports.listPublicCategories = exports.getPublicProduct = exports.listPublicProducts = void 0;
+exports.listPublicLandingImages = exports.listPublicSiteConfigs = exports.listPublicOffers = exports.listPublicCategories = exports.getPublicProduct = exports.listPublicProducts = void 0;
 const response_1 = require("../../shared/utils/response");
 const product_types_1 = require("../products/product.types");
 const category_types_1 = require("../categories/category.types");
@@ -8,6 +8,8 @@ const product_service_1 = require("../products/product.service");
 const category_service_1 = require("../categories/category.service");
 const category_repository_1 = require("../categories/category.repository");
 const offer_service_1 = require("../offers/offer.service");
+const site_config_service_1 = require("../site-config/site-config.service");
+const landing_image_service_1 = require("../landing-image/landing-image.service");
 const uuidV4_1 = require("../../shared/utils/uuidV4");
 const AppError_1 = require("../../shared/errors/AppError");
 // ─── Productos Públicos ───────────────────────────────────────────────────────
@@ -73,4 +75,26 @@ const listPublicOffers = async (req, res, next) => {
     }
 };
 exports.listPublicOffers = listPublicOffers;
+// ─── Site Config Público ─────────────────────────────────────────────────────
+const listPublicSiteConfigs = async (req, res, next) => {
+    try {
+        const configs = await (0, site_config_service_1.listPublicSiteConfigsService)(req.user.shop_id);
+        (0, response_1.sendSuccess)(res, configs);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listPublicSiteConfigs = listPublicSiteConfigs;
+// ─── Landing Images Público ──────────────────────────────────────────────────
+const listPublicLandingImages = async (req, res, next) => {
+    try {
+        const images = await (0, landing_image_service_1.listPublicLandingImagesService)(req.user.shop_id);
+        (0, response_1.sendSuccess)(res, images);
+    }
+    catch (err) {
+        next(err);
+    }
+};
+exports.listPublicLandingImages = listPublicLandingImages;
 //# sourceMappingURL=public.controller.js.map

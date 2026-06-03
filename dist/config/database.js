@@ -3,6 +3,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.testConnection = exports.withTransaction = exports.query = void 0;
 const pg_1 = require("pg");
 const env_1 = require("./env");
+// Forzar que el driver de postgres (pg) devuelva los tipos NUMERIC (OID 1700) como numbers en JS
+pg_1.types.setTypeParser(1700, (val) => parseFloat(val));
 // Pool de conexiones — reutiliza conexiones en lugar de abrir una por request
 const isSupabase = env_1.env.db.url.includes('supabase.co') || env_1.env.db.url.includes('supabase.com');
 const pool = new pg_1.Pool({

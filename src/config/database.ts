@@ -1,5 +1,8 @@
-import { Pool, PoolClient, QueryResultRow } from 'pg';
+import { Pool, PoolClient, QueryResultRow, types } from 'pg';
 import { env } from './env';
+
+// Forzar que el driver de postgres (pg) devuelva los tipos NUMERIC (OID 1700) como numbers en JS
+types.setTypeParser(1700, (val) => parseFloat(val));
 
 // Pool de conexiones — reutiliza conexiones en lugar de abrir una por request
 const isSupabase = env.db.url.includes('supabase.co') || env.db.url.includes('supabase.com');

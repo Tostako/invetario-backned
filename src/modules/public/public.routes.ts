@@ -6,6 +6,8 @@ import {
   getPublicProduct,
   listPublicCategories,
   listPublicOffers,
+  listPublicSiteConfigs,
+  listPublicLandingImages,
 } from './public.controller';
 
 const router = Router();
@@ -22,5 +24,11 @@ router.get('/categories', listPublicCategories);
 
 // ─── Ofertas públicas ─────────────────────────────────────────────────────────
 router.get('/offers', listPublicOffers);
+
+// ─── Site Config público ──────────────────────────────────────────────────────
+router.get('/site-config', listPublicSiteConfigs);
+
+// ─── Landing Images público ──────────────────────────────────────────────────
+router.get('/landing-images', listPublicLandingImages);
 
 export { router as publicRouter };
