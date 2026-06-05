@@ -29,6 +29,7 @@ const landing_image_routes_1 = require("./modules/landing-image/landing-image.ro
 const audit_log_routes_1 = require("./modules/audit-log/audit-log.routes");
 const quote_routes_1 = require("./modules/quotes/quote.routes");
 const customer_config_routes_1 = require("./modules/customer-config/customer-config.routes");
+const payment_plan_routes_1 = require("./modules/payment-plans/payment-plan.routes");
 const authenticate_1 = require("./middlewares/authenticate");
 const auth_controller_1 = require("./modules/auth/auth.controller");
 const app = (0, express_1.default)();
@@ -72,6 +73,7 @@ app.use('/api/v1/site-config', site_config_routes_1.siteConfigRouter);
 app.use('/api/v1/landing-images', landing_image_routes_1.landingImageRouter);
 app.use('/api/v1/audit-logs', audit_log_routes_1.auditLogRouter);
 app.use('/api/v1/quotes', quote_routes_1.quoteRouter);
+app.use('/api/v1/payment-plans', payment_plan_routes_1.paymentPlanRouter);
 app.use('/api/v1/customer-config', customer_config_routes_1.customerConfigRouter);
 app.use('/api/v1/admin', superadmin_routes_1.superAdminRouter);
 // Gestión de múltiples tiendas para un usuario

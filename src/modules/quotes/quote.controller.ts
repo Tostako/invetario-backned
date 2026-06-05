@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import { z } from 'zod';
 import { AuthenticatedRequest } from '../../shared/types';
 import { sendSuccess, sendCreated } from '../../shared/utils/response';
 import {
@@ -12,6 +13,9 @@ import {
   createQuoteService,
   updateQuoteService,
   deleteQuoteService,
+  selectPlanForQuoteService,
+  registrarPagoManualService,
+  listQuotePaymentsService,
 } from './quote.service';
 
 // Helper: si el usuario es customer, devuelve su customer_id; si no, undefined (admin/owner ve todo)
@@ -93,6 +97,83 @@ export const deleteQuote = async (
     const customerId = getCustomerId(req);
     await deleteQuoteService(req.user.shop_id, req.params['id']!, customerId);
     sendSuccess(res, { message: 'Quote deleted successfully' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/v1/quotes/:id/select-plan
+export const selectPlanForQuote = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const schema = z.object({
+      payment_plan_id: z.string().uuid('El plan de pagos debe ser un UUID válido').nullable(),
+    });
+    const { payment_plan_id } = schema.parse(req.body);
+    const customerId = getCustomerId(req);
+    const quote = await selectPlanForQuoteService(req.user.shop_id, req.params['id']!, payment_plan_id, customerId);
+    sendSuccess(res, quote);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/v1/quotes/:id/payments
+export const registerQuotePayment = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const schema = z.object({
+      method: z.enum(['card', 'pse', 'manual', 'cash', 'transfer', 'wompi', 'other']),
+      amount: z.coerce.number().positive('El monto debe ser mayor que cero').optional(),
+      transaction_amount: z.coerce.number().positive('El monto debe ser mayor que cero').optional(),
+      transactionAmount: z.coerce.number().positive('El monto debe ser mayor que cero').optional(),
+      plan_installment_index: z.coerce.number().int().nonnegative().optional().nullable(),
+      installmentIndex: z.coerce.number().int().nonnegative().optional().nullable(),
+      notes: z.string().max(1000).optional().nullable(),
+    }).refine(data => data.transaction_amount !== undefined || data.transactionAmount !== undefined || data.amount !== undefined, {
+      message: "El monto del pago es requerido (campo 'amount', 'transactionAmount' o 'transaction_amount')",
+      path: ['transaction_amount']
+    });
+    
+    const dto = schema.parse(req.body);
+    const resolvedAmount = dto.transaction_amount ?? dto.transactionAmount ?? dto.amount!;
+    const resolvedInstallmentIndex = dto.plan_installment_index ?? dto.installmentIndex ?? null;
+    
+    const customerId = getCustomerId(req);
+    const recordedBy = req.user.role !== 'customer' ? req.user.id : null;
+
+    const payment = await registrarPagoManualService(
+      req.user.shop_id,
+      req.params['id']!,
+      dto.method,
+      resolvedAmount,
+      resolvedInstallmentIndex,
+      dto.notes ?? null,
+      recordedBy,
+      customerId
+    );
+    sendCreated(res, payment);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/v1/quotes/:id/payments
+export const listQuotePayments = async (
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const customerId = getCustomerId(req);
+    const payments = await listQuotePaymentsService(req.user.shop_id, req.params['id']!, customerId);
+    sendSuccess(res, payments);
   } catch (err) {
     next(err);
   }

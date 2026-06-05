@@ -24,6 +24,7 @@ import { landingImageRouter } from './modules/landing-image/landing-image.routes
 import { auditLogRouter } from './modules/audit-log/audit-log.routes';
 import { quoteRouter } from './modules/quotes/quote.routes';
 import { customerConfigRouter } from './modules/customer-config/customer-config.routes';
+import { paymentPlanRouter } from './modules/payment-plans/payment-plan.routes';
 import { authenticate } from './middlewares/authenticate';
 import { createAdditionalShop } from './modules/auth/auth.controller';
 
@@ -77,6 +78,7 @@ app.use('/api/v1/site-config', siteConfigRouter);
 app.use('/api/v1/landing-images', landingImageRouter);
 app.use('/api/v1/audit-logs', auditLogRouter);
 app.use('/api/v1/quotes', quoteRouter);
+app.use('/api/v1/payment-plans', paymentPlanRouter);
 app.use('/api/v1/customer-config', customerConfigRouter);
 app.use('/api/v1/admin', superAdminRouter);
 

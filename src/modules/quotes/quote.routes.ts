@@ -9,6 +9,9 @@ import {
   createQuote,
   updateQuote,
   deleteQuote,
+  selectPlanForQuote,
+  registerQuotePayment,
+  listQuotePayments,
 } from './quote.controller';
 
 const router = Router();
@@ -35,6 +38,21 @@ router.patch('/:id',
 router.delete('/:id',
   validateUuid('id'),
   deleteQuote
+);
+
+router.post('/:id/select-plan',
+  validateUuid('id'),
+  selectPlanForQuote
+);
+
+router.post('/:id/payments',
+  validateUuid('id'),
+  registerQuotePayment
+);
+
+router.get('/:id/payments',
+  validateUuid('id'),
+  listQuotePayments
 );
 
 export { router as quoteRouter };

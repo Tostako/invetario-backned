@@ -76,6 +76,7 @@ export interface Quote {
     status: 'draft' | 'sent' | 'paid' | 'completed';
     data: Record<string, unknown>;
     date: string;
+    payment_plan_id: string | null;
     created_at: string;
     updated_at: string;
 }

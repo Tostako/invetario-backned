@@ -42,9 +42,10 @@ const findPaymentById = async (shopId, paymentId) => {
 };
 exports.findPaymentById = findPaymentById;
 const listarPagosPorTienda = async (shopId, limit = 50, offset = 0) => {
-    const result = await (0, database_1.query)(`SELECT p.*, o.order_number
+    const result = await (0, database_1.query)(`SELECT p.*, o.order_number, q.client as quote_client, q.project as quote_project
      FROM payments p
-     JOIN orders o ON o.id = p.order_id AND o.shop_id = p.shop_id
+     LEFT JOIN orders o ON o.id = p.order_id AND o.shop_id = p.shop_id
+     LEFT JOIN quotes q ON q.id = p.quote_id AND q.shop_id = p.shop_id
      WHERE p.shop_id = $1
      ORDER BY p.created_at DESC
      LIMIT $2 OFFSET $3`, [shopId, limit, offset]);
