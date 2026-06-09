@@ -103,6 +103,35 @@ export const createCustomer = async (dto: RegisterCustomerDto) => {
 
 export const updateCustomerLastLogin = (customerId: string): Promise<void> =>
   query(`SELECT sp_actualizar_ultimo_login_customer($1)`, [customerId]).then(() => undefined);
+
+/** Busca el customer vinculado por email dentro de una tienda (sin slug). */
+export const findCustomerIdByEmailAndShop = async (
+  email: string,
+  shopId: string
+): Promise<string | null> => {
+  const result = await query<{ id: string }>(
+    `SELECT id FROM customers WHERE shop_id = $1 AND email = $2 LIMIT 1`,
+    [shopId, email.toLowerCase()]
+  );
+  return result.rows[0]?.id ?? null;
+};
+
+/** Garantiza un registro en customers para un usuario de tienda (owner/admin/staff). */
+export const ensureCustomerForShopUser = async (
+  shopId: string,
+  email: string,
+  name: string
+): Promise<string> => {
+  const normalizedEmail = email.toLowerCase();
+  const existing = await findCustomerIdByEmailAndShop(normalizedEmail, shopId);
+  if (existing) return existing;
+
+  const result = await query<{ id: string }>(
+    `INSERT INTO customers (shop_id, name, email) VALUES ($1, $2, $3) RETURNING id`,
+    [shopId, name, normalizedEmail]
+  );
+  return result.rows[0]!.id;
+};
 export const createShopForExistingUser = async (userId: string, dto: { shop_name: string; shop_slug: string; shop_email: string }) => {
   const result = await query<{ shop_id: string; user_id: string }>(
     `SELECT * FROM sp_crear_tienda_para_user_existente($1, $2, $3, $4)`,

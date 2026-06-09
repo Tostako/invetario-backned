@@ -13,7 +13,7 @@ declare global {
         shop_id: string;       // OBLIGATORIO para roles de tienda; vacío '' para superadmin o pending
         email: string;
         role: UserRole;
-        customer_id?: string;  // Solo presente cuando role === 'customer'
+        customer_id?: string;  // ID en tabla customers (customer directo o vinculado por email)
         /** Presente en JWT de empleados tras login; usado para revocar sesiones. */
         jti?: string;
       };

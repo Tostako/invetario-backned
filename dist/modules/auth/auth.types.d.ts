@@ -31,12 +31,21 @@ export declare const LoginSchema: z.ZodObject<{
     password: string;
     email: string;
 }>;
-export declare const SelectShopSchema: z.ZodObject<{
-    shop_id: z.ZodString;
+export declare const SelectShopSchema: z.ZodEffects<z.ZodObject<{
+    shop_id: z.ZodOptional<z.ZodString>;
+    shop_slug: z.ZodOptional<z.ZodString>;
 }, "strip", z.ZodTypeAny, {
-    shop_id: string;
+    shop_slug?: string | undefined;
+    shop_id?: string | undefined;
 }, {
-    shop_id: string;
+    shop_slug?: string | undefined;
+    shop_id?: string | undefined;
+}>, {
+    shop_slug?: string | undefined;
+    shop_id?: string | undefined;
+}, {
+    shop_slug?: string | undefined;
+    shop_id?: string | undefined;
 }>;
 export type SelectShopDto = z.infer<typeof SelectShopSchema>;
 export declare const RegisterCustomerSchema: z.ZodObject<{

@@ -90,18 +90,18 @@ export declare const ProductFilterSchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     limit: number;
     page: number;
-    is_active?: boolean | undefined;
     category_id?: string | undefined;
     supplier_id?: string | undefined;
     search?: string | undefined;
     low_stock?: boolean | undefined;
+    is_active?: boolean | undefined;
 }, {
     limit?: number | undefined;
-    is_active?: boolean | undefined;
     category_id?: unknown;
     supplier_id?: unknown;
     search?: string | undefined;
     low_stock?: boolean | undefined;
+    is_active?: boolean | undefined;
     page?: number | undefined;
 }>;
 /** Catálogo público: category_id puede ser UUID o nombre exacto de categoría (se resuelve en el controller). */
@@ -118,18 +118,18 @@ export declare const PublicProductFilterSchema: z.ZodObject<Omit<{
 }, "strip", z.ZodTypeAny, {
     limit: number;
     page: number;
-    is_active?: boolean | undefined;
     category_id?: string | undefined;
     supplier_id?: string | undefined;
     search?: string | undefined;
     low_stock?: boolean | undefined;
+    is_active?: boolean | undefined;
 }, {
     limit?: number | undefined;
-    is_active?: boolean | undefined;
     category_id?: unknown;
     supplier_id?: unknown;
     search?: string | undefined;
     low_stock?: boolean | undefined;
+    is_active?: boolean | undefined;
     page?: number | undefined;
 }>;
 export type EstadoStock = 'ok' | 'bajo' | 'sin_stock';

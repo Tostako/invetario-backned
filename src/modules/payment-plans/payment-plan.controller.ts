@@ -25,7 +25,7 @@ export const crearPlanPago = async (
 ): Promise<void> => {
   try {
     const dto = CreatePaymentPlanSchema.parse(req.body);
-    const customerId = getCustomerId(req);
+    const customerId = dto.customer_id ? undefined : req.user.customer_id;
     const plan = await crearPlanPagoService(req.user.shop_id, customerId, dto);
     sendCreated(res, plan);
   } catch (err) {
@@ -40,7 +40,10 @@ export const listarPlanesPago = async (
   next: NextFunction
 ): Promise<void> => {
   try {
-    const customerId = getCustomerId(req) ?? (req.query['customer_id'] as string | undefined);
+    const customerId =
+      getCustomerId(req)
+      ?? (req.query['customer_id'] as string | undefined)
+      ?? req.user.customer_id;
     const planes = await listarPlanesPagoService(req.user.shop_id, customerId);
     sendSuccess(res, planes);
   } catch (err) {

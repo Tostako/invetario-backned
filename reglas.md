@@ -152,3 +152,11 @@ Este proyecto debe garantizar:
 * Seguridad de datos
 * Escalabilidad
 * Código mantenible y profesional
+
+---
+
+## 🤖 Reglas de Interacción con IA
+
+* **Análisis y Debugging**: Cuando el usuario pida analizar un error, investigar o revisar una función existente, la IA **no** debe crear un plan de implementación. Debe responder directamente a las preguntas y proporcionar explicaciones breves y concisas.
+* **Nuevas Funcionalidades**: Solo se creará un plan de implementación (`implementation_plan.md`) cuando se solicite crear o diseñar una nueva funcionalidad desde cero.
+

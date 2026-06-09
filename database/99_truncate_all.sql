@@ -19,6 +19,7 @@ TRUNCATE TABLE
 
   -- Tablas del cotizador
   customer_configs,
+  quote_invoices,
   quotes,
 
   -- Tablas de la tienda / inventario

@@ -33,9 +33,9 @@ export declare const CreateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     starts_at: Date;
     ends_at: Date;
     code?: unknown;
-    is_active?: unknown;
     description?: unknown;
     category_id?: unknown;
+    is_active?: unknown;
     product_id?: unknown;
     usage_limit?: number | undefined;
 }>, {
@@ -59,9 +59,9 @@ export declare const CreateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     starts_at: Date;
     ends_at: Date;
     code?: unknown;
-    is_active?: unknown;
     description?: unknown;
     category_id?: unknown;
+    is_active?: unknown;
     product_id?: unknown;
     usage_limit?: number | undefined;
 }>, {
@@ -85,9 +85,9 @@ export declare const CreateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     starts_at: Date;
     ends_at: Date;
     code?: unknown;
-    is_active?: unknown;
     description?: unknown;
     category_id?: unknown;
+    is_active?: unknown;
     product_id?: unknown;
     usage_limit?: number | undefined;
 }>;
@@ -106,9 +106,9 @@ export declare const UpdateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     usage_limit: z.ZodOptional<z.ZodOptional<z.ZodNumber>>;
 }, "strip", z.ZodTypeAny, {
     code?: string | undefined;
-    is_active?: boolean | undefined;
     description?: string | undefined;
     category_id?: string | undefined;
+    is_active?: boolean | undefined;
     product_id?: string | undefined;
     title?: string | undefined;
     discount_type?: "percentage" | "fixed_amount" | undefined;
@@ -119,9 +119,9 @@ export declare const UpdateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     usage_limit?: number | undefined;
 }, {
     code?: unknown;
-    is_active?: unknown;
     description?: unknown;
     category_id?: unknown;
+    is_active?: unknown;
     product_id?: unknown;
     title?: string | undefined;
     discount_type?: "percentage" | "fixed_amount" | undefined;
@@ -132,9 +132,9 @@ export declare const UpdateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     usage_limit?: number | undefined;
 }>, {
     code?: string | undefined;
-    is_active?: boolean | undefined;
     description?: string | undefined;
     category_id?: string | undefined;
+    is_active?: boolean | undefined;
     product_id?: string | undefined;
     title?: string | undefined;
     discount_type?: "percentage" | "fixed_amount" | undefined;
@@ -145,9 +145,9 @@ export declare const UpdateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     usage_limit?: number | undefined;
 }, {
     code?: unknown;
-    is_active?: unknown;
     description?: unknown;
     category_id?: unknown;
+    is_active?: unknown;
     product_id?: unknown;
     title?: string | undefined;
     discount_type?: "percentage" | "fixed_amount" | undefined;
@@ -158,9 +158,9 @@ export declare const UpdateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     usage_limit?: number | undefined;
 }>, {
     code?: string | undefined;
-    is_active?: boolean | undefined;
     description?: string | undefined;
     category_id?: string | undefined;
+    is_active?: boolean | undefined;
     product_id?: string | undefined;
     title?: string | undefined;
     discount_type?: "percentage" | "fixed_amount" | undefined;
@@ -171,9 +171,9 @@ export declare const UpdateOfferSchema: z.ZodEffects<z.ZodEffects<z.ZodObject<{
     usage_limit?: number | undefined;
 }, {
     code?: unknown;
-    is_active?: unknown;
     description?: unknown;
     category_id?: unknown;
+    is_active?: unknown;
     product_id?: unknown;
     title?: string | undefined;
     discount_type?: "percentage" | "fixed_amount" | undefined;

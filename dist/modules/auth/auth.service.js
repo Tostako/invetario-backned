@@ -57,9 +57,17 @@ const loginService = async (dto) => {
     };
 };
 exports.loginService = loginService;
-const selectShopService = async (email, shopId, sessionMeta) => {
+const selectShopService = async (email, shopIdentifier, sessionMeta) => {
     const users = await (0, auth_repository_1.findUsersByEmail)(email);
-    const userInShop = users.find(u => u.shop_id === shopId);
+    let userInShop;
+    if (shopIdentifier.shopId) {
+        const targetId = shopIdentifier.shopId;
+        userInShop = users.find(u => u.shop_id === targetId);
+    }
+    else if (shopIdentifier.shopSlug) {
+        const targetSlug = shopIdentifier.shopSlug.toLowerCase();
+        userInShop = users.find(u => u.shop_slug.toLowerCase() === targetSlug);
+    }
     if (!userInShop) {
         throw new AppError_1.UnauthorizedError('User does not belong to this shop');
     }
@@ -89,6 +97,11 @@ const selectShopService = async (email, shopId, sessionMeta) => {
             name: userInShop.user_name,
             email: email,
             role: userInShop.role,
+        },
+        customer: {
+            id: userInShop.user_id,
+            name: userInShop.user_name,
+            email: email,
         },
     };
 };

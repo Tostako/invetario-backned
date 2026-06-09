@@ -13,6 +13,13 @@ import {
   registerQuotePayment,
   listQuotePayments,
 } from './quote.controller';
+import {
+  listQuoteInvoices,
+  getQuoteInvoice,
+  createQuoteInvoice,
+  updateQuoteInvoice,
+  deleteQuoteInvoice,
+} from './quote-invoice.controller';
 
 const router = Router();
 
@@ -53,6 +60,34 @@ router.post('/:id/payments',
 router.get('/:id/payments',
   validateUuid('id'),
   listQuotePayments
+);
+
+router.post('/:id/invoices',
+  validateUuid('id'),
+  createQuoteInvoice
+);
+
+router.get('/:id/invoices',
+  validateUuid('id'),
+  listQuoteInvoices
+);
+
+router.get('/:id/invoices/:invoiceId',
+  validateUuid('id'),
+  validateUuid('invoiceId'),
+  getQuoteInvoice
+);
+
+router.patch('/:id/invoices/:invoiceId',
+  validateUuid('id'),
+  validateUuid('invoiceId'),
+  updateQuoteInvoice
+);
+
+router.delete('/:id/invoices/:invoiceId',
+  validateUuid('id'),
+  validateUuid('invoiceId'),
+  deleteQuoteInvoice
 );
 
 export { router as quoteRouter };

@@ -7,12 +7,12 @@ export declare const ListCustomersQuerySchema: z.ZodObject<{
 }, "strip", z.ZodTypeAny, {
     limit: number;
     page: number;
-    is_active?: boolean | undefined;
     search?: string | undefined;
+    is_active?: boolean | undefined;
 }, {
     limit?: number | undefined;
-    is_active?: boolean | undefined;
     search?: string | undefined;
+    is_active?: boolean | undefined;
     page?: number | undefined;
 }>;
 export type ListCustomersQuery = z.infer<typeof ListCustomersQuerySchema>;

@@ -12,6 +12,7 @@ import {
   createCustomer,
   updateCustomerLastLogin,
   findUsersByEmail,
+  ensureCustomerForShopUser,
 } from './auth.repository';
 import { crearSesionUsuario } from '../users/userSession.repository';
 import { LoginDto, RegisterShopDto, LoginCustomerDto, RegisterCustomerDto, CreateAdditionalShopDto } from './auth.types';
@@ -25,11 +26,12 @@ const signToken = (payload: {
   email: string;
   role?: UserRole;
   jti?: string;
+  customer_id?: string;
 }): string =>
   jwt.sign(payload, env.jwt.secret, { expiresIn: env.jwt.expiresIn } as jwt.SignOptions);
 
 export const firmarTokenConSesionOpcional = async (
-  base: { sub: string; shop_id: string; email: string; role: UserRole },
+  base: { sub: string; shop_id: string; email: string; role: UserRole; customer_id?: string },
   sessionMeta?: SessionMeta
 ): Promise<string> => {
   const jti = randomUUID();
@@ -82,11 +84,19 @@ export const loginService = async (dto: LoginDto) => {
 
 export const selectShopService = async (
   email: string,
-  shopId: string,
+  shopIdentifier: { shopId?: string; shopSlug?: string },
   sessionMeta?: SessionMeta
 ) => {
   const users = await findUsersByEmail(email);
-  const userInShop = users.find(u => u.shop_id === shopId);
+  
+  let userInShop;
+  if (shopIdentifier.shopId) {
+    const targetId = shopIdentifier.shopId;
+    userInShop = users.find(u => u.shop_id === targetId);
+  } else if (shopIdentifier.shopSlug) {
+    const targetSlug = shopIdentifier.shopSlug.toLowerCase();
+    userInShop = users.find(u => u.shop_slug.toLowerCase() === targetSlug);
+  }
 
   if (!userInShop) {
     throw new UnauthorizedError('User does not belong to this shop');
@@ -98,12 +108,19 @@ export const selectShopService = async (
 
   await updateLastLogin(userInShop.user_id);
 
+  const customerId = await ensureCustomerForShopUser(
+    userInShop.shop_id,
+    email,
+    userInShop.user_name
+  );
+
   const jti = randomUUID();
   const token = signToken({
     sub: userInShop.user_id,
     shop_id: userInShop.shop_id,
     email: email,
     role: userInShop.role as UserRole,
+    customer_id: customerId,
     jti,
   });
 
@@ -123,6 +140,11 @@ export const selectShopService = async (
       email: email,
       role: userInShop.role,
     },
+    customer: {
+      id: customerId,
+      name: userInShop.user_name,
+      email: email,
+    },
   };
 };
 
@@ -130,12 +152,19 @@ export const registerShopService = async (dto: RegisterShopDto, sessionMeta?: Se
   try {
     const { shopId, userId } = await createShopWithOwner(dto);
 
+    const customerId = await ensureCustomerForShopUser(
+      shopId,
+      dto.owner_email,
+      dto.owner_name
+    );
+
     const jti = randomUUID();
     const token = signToken({
       sub: userId,
       shop_id: shopId,
       email: dto.owner_email,
       role: 'owner',
+      customer_id: customerId,
       jti,
     });
 

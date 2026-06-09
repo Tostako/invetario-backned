@@ -4,6 +4,10 @@ import { env } from '../config/env';
 import { AuthenticatedRequest, UserRole } from '../shared/types';
 import { UnauthorizedError } from '../shared/errors/AppError';
 import { sesionActivaPorJti } from '../modules/users/userSession.repository';
+import {
+  ensureCustomerForShopUser,
+  findCustomerIdByEmailAndShop,
+} from '../modules/auth/auth.repository';
 
 // Payload que vive dentro del JWT
 interface JwtPayload {
@@ -12,9 +16,24 @@ interface JwtPayload {
   email: string;
   role?: UserRole;
   jti?: string;
+  customer_id?: string;
 }
 
 const rolesConSesionEnBd: UserRole[] = ['owner', 'admin', 'staff'];
+const rolesConCustomerId: UserRole[] = ['customer', 'owner', 'admin', 'staff'];
+
+const resolverCustomerId = async (payload: JwtPayload): Promise<string | undefined> => {
+  if (payload.role === 'customer') return payload.sub;
+  if (!payload.role || !rolesConCustomerId.includes(payload.role) || !payload.shop_id) {
+    return undefined;
+  }
+  if (payload.customer_id) return payload.customer_id;
+
+  const existente = await findCustomerIdByEmailAndShop(payload.email, payload.shop_id);
+  if (existente) return existente;
+
+  return ensureCustomerForShopUser(payload.shop_id, payload.email, payload.email.split('@')[0] ?? 'Customer');
+};
 
 // Verifica el token, extrae el payload y lo adjunta a req.user.
 // Tokens de empleados con `jti` validan sesión activa en user_sessions (revocación).
@@ -23,15 +42,15 @@ export const authenticate = async (
   _res: Response,
   next: NextFunction
 ): Promise<void> => {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader?.startsWith('Bearer ')) {
-    throw new UnauthorizedError('Missing or malformed authorization header', 'MISSING_TOKEN');
-  }
-
-  const token = authHeader.slice(7);
-
   try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader?.startsWith('Bearer ')) {
+      throw new UnauthorizedError('Missing or malformed authorization header', 'MISSING_TOKEN');
+    }
+
+    const token = authHeader.slice(7);
+
     const payload = jwt.verify(token, env.jwt.secret) as JwtPayload;
 
     if (!payload.sub || !payload.email) {
@@ -58,13 +77,15 @@ export const authenticate = async (
       throw new UnauthorizedError('Invalid token payload', 'INVALID_TOKEN_PAYLOAD');
     }
 
+    const customerId = await resolverCustomerId(payload);
+
     req.user = {
       id: payload.sub,
       shop_id: payload.shop_id ?? '',
       email: payload.email,
       role: payload.role,
       jti: payload.jti,
-      ...(payload.role === 'customer' && { customer_id: payload.sub }),
+      ...(customerId && { customer_id: customerId }),
     };
 
     if (

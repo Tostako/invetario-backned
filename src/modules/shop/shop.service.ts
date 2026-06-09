@@ -1,7 +1,7 @@
 import { NotFoundError } from '../../shared/errors/AppError';
 import { obtenerTiendaPorId, actualizarTienda, eliminarTienda } from './shop.repository';
 import { UpdateShopDto } from './shop.types';
-import { findUsersByEmail } from '../auth/auth.repository';
+import { findUsersByEmail, ensureCustomerForShopUser } from '../auth/auth.repository';
 import { firmarTokenConSesionOpcional, SessionMeta } from '../auth/auth.service';
 import { UserRole } from '../../shared/types';
 import { supabase } from '../../config/supabase';
@@ -56,12 +56,18 @@ export const eliminarTiendaService = async (
   if (otherActiveShops.length > 0) {
     // 3. Si tiene otra tienda, generamos un nuevo token para la primera que encontremos
     const nextShop = otherActiveShops[0]!;
+    const customerId = await ensureCustomerForShopUser(
+      nextShop.shop_id,
+      userEmail,
+      nextShop.user_name
+    );
     const newToken = await firmarTokenConSesionOpcional(
       {
         sub: nextShop.user_id,
         shop_id: nextShop.shop_id,
         email: userEmail,
         role: nextShop.role as UserRole,
+        customer_id: customerId,
       },
       sessionMeta
     );
