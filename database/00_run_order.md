@@ -14,3 +14,8 @@ Ejecutar en este orden (las FK dependen de las tablas anteriores):
 10. `10_rls_policies.sql` (revisar antes de activar en producción)
 11. `11_cart_items.sql`
 12. `12_payments.sql`
+13. `13_customer_auth.sql` … (continuar según migraciones del proyecto)
+14. …
+15. `44_quote_invoices.sql` — tabla cuentas de cobro por cotización
+16. `45_fn_quote_invoices.sql` — funciones CRUD de cuentas de cobro
+

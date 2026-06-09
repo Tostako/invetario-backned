@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 // Métodos de pago soportados
-export const METODOS_PAGO = ['cash', 'card', 'transfer', 'pse', 'other'] as const;
+export const METODOS_PAGO = ['card', 'pse', 'manual', 'cash', 'transfer', 'wompi', 'other'] as const;
 export type MetodoPago = typeof METODOS_PAGO[number];
 
 // ─── Esquema para registrar un pago ──────────────────────────────────────────
@@ -15,7 +15,7 @@ export const RegistrarPagoSchema = z.object({
 
 // ─── Esquema para actualizar estado de un pago ───────────────────────────────
 export const ActualizarPagoSchema = z.object({
-  status:  z.enum(['approved', 'rejected', 'cancelled', 'refunded']),
+  status:  z.enum(['pending', 'approved', 'rejected', 'cancelled', 'refunded', 'in_process', 'confirmed']),
   notes:   z.string().max(500).optional(),
 });
 
@@ -26,12 +26,19 @@ export type ActualizarPagoDto   = z.infer<typeof ActualizarPagoSchema>;
 export interface Payment {
   id:                    string;
   shop_id:               string;
-  order_id:              string;
+  order_id:              string | null;
+  quote_id:              string | null;
+  plan_installment_index: number | null;
+  installmentIndex?:      number | null;
+  notes:                 string | null;
+  recorded_by:           string | null;
   mp_payment_id:         number | null;
   method:                string;
   status:                string;
   status_detail:         string | null;
   transaction_amount:    number;
+  transactionAmount?:     number;
+  amount?:                number;
   external_resource_url: string | null;
   raw_response:          unknown;
   created_at:            string;

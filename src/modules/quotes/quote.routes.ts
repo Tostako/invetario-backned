@@ -9,7 +9,17 @@ import {
   createQuote,
   updateQuote,
   deleteQuote,
+  selectPlanForQuote,
+  registerQuotePayment,
+  listQuotePayments,
 } from './quote.controller';
+import {
+  listQuoteInvoices,
+  getQuoteInvoice,
+  createQuoteInvoice,
+  updateQuoteInvoice,
+  deleteQuoteInvoice,
+} from './quote-invoice.controller';
 
 const router = Router();
 
@@ -35,6 +45,49 @@ router.patch('/:id',
 router.delete('/:id',
   validateUuid('id'),
   deleteQuote
+);
+
+router.post('/:id/select-plan',
+  validateUuid('id'),
+  selectPlanForQuote
+);
+
+router.post('/:id/payments',
+  validateUuid('id'),
+  registerQuotePayment
+);
+
+router.get('/:id/payments',
+  validateUuid('id'),
+  listQuotePayments
+);
+
+router.post('/:id/invoices',
+  validateUuid('id'),
+  createQuoteInvoice
+);
+
+router.get('/:id/invoices',
+  validateUuid('id'),
+  listQuoteInvoices
+);
+
+router.get('/:id/invoices/:invoiceId',
+  validateUuid('id'),
+  validateUuid('invoiceId'),
+  getQuoteInvoice
+);
+
+router.patch('/:id/invoices/:invoiceId',
+  validateUuid('id'),
+  validateUuid('invoiceId'),
+  updateQuoteInvoice
+);
+
+router.delete('/:id/invoices/:invoiceId',
+  validateUuid('id'),
+  validateUuid('invoiceId'),
+  deleteQuoteInvoice
 );
 
 export { router as quoteRouter };

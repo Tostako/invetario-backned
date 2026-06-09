@@ -19,13 +19,21 @@ export declare const loginService: (dto: LoginDto) => Promise<{
         role: string;
     }[];
 }>;
-export declare const selectShopService: (email: string, shopId: string, sessionMeta?: SessionMeta) => Promise<{
+export declare const selectShopService: (email: string, shopIdentifier: {
+    shopId?: string;
+    shopSlug?: string;
+}, sessionMeta?: SessionMeta) => Promise<{
     token: string;
     user: {
         id: string;
         name: string;
         email: string;
         role: string;
+    };
+    customer: {
+        id: string;
+        name: string;
+        email: string;
     };
 }>;
 export declare const registerShopService: (dto: RegisterShopDto, sessionMeta?: SessionMeta) => Promise<{

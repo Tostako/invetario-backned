@@ -6,6 +6,7 @@
 
 import { query } from '../../config/database';
 import { CreateQuoteDto, UpdateQuoteDto, QuoteFilter, Quote } from './quote.types';
+import { Payment } from '../payments/payment.types';
 
 interface FindAllResult {
   rows: Quote[];
@@ -96,4 +97,43 @@ export const deleteQuote = async (
 ): Promise<boolean> => {
   await query(`SELECT sp_eliminar_cotizacion($1, $2)`, [shopId, quoteId]);
   return true;
+};
+
+export const asignarPlanACotizacion = async (
+  shopId: string,
+  quoteId: string,
+  planId: string | null
+): Promise<Quote> => {
+  const result = await query<Quote>(
+    `SELECT * FROM sp_asignar_plan_cotizacion($1, $2, $3)`,
+    [shopId, quoteId, planId]
+  );
+  return result.rows[0]!;
+};
+
+export const registrarPagoManual = async (
+  shopId: string,
+  quoteId: string,
+  method: string,
+  amount: number,
+  installmentIdx: number | null,
+  notes: string | null,
+  userId: string | null
+): Promise<Payment> => {
+  const result = await query<Payment>(
+    `SELECT * FROM sp_registrar_pago_manual_cotizacion($1, $2, $3, $4, $5, $6, $7)`,
+    [shopId, quoteId, method, amount, installmentIdx, notes, userId]
+  );
+  return result.rows[0]!;
+};
+
+export const findPaymentsByQuote = async (
+  shopId: string,
+  quoteId: string
+): Promise<Payment[]> => {
+  const result = await query<Payment>(
+    `SELECT * FROM fn_listar_pagos_cotizacion($1, $2)`,
+    [shopId, quoteId]
+  );
+  return result.rows;
 };

@@ -17,4 +17,7 @@ router.post('/', quote_controller_1.createQuote);
 router.get('/:id', (0, validateUuid_1.validateUuid)('id'), quote_controller_1.getQuote);
 router.patch('/:id', (0, validateUuid_1.validateUuid)('id'), quote_controller_1.updateQuote);
 router.delete('/:id', (0, validateUuid_1.validateUuid)('id'), quote_controller_1.deleteQuote);
+router.post('/:id/select-plan', (0, validateUuid_1.validateUuid)('id'), quote_controller_1.selectPlanForQuote);
+router.post('/:id/payments', (0, validateUuid_1.validateUuid)('id'), quote_controller_1.registerQuotePayment);
+router.get('/:id/payments', (0, validateUuid_1.validateUuid)('id'), quote_controller_1.listQuotePayments);
 //# sourceMappingURL=quote.routes.js.map

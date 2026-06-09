@@ -5,4 +5,7 @@ export declare const getQuote: (req: AuthenticatedRequest, res: Response, next: 
 export declare const createQuote: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
 export declare const updateQuote: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
 export declare const deleteQuote: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const selectPlanForQuote: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const registerQuotePayment: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
+export declare const listQuotePayments: (req: AuthenticatedRequest, res: Response, next: NextFunction) => Promise<void>;
 //# sourceMappingURL=quote.controller.d.ts.map

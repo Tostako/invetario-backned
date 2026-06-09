@@ -15,7 +15,11 @@ exports.LoginSchema = zod_1.z.object({
     password: zod_1.z.string().min(1),
 });
 exports.SelectShopSchema = zod_1.z.object({
-    shop_id: zod_1.z.string().uuid(),
+    shop_id: zod_1.z.string().uuid().optional(),
+    shop_slug: zod_1.z.string().min(1).optional(),
+}).refine(data => data.shop_id || data.shop_slug, {
+    message: "Either shop_id or shop_slug must be provided",
+    path: ["shop_id", "shop_slug"],
 });
 exports.RegisterCustomerSchema = zod_1.z.object({
     name: zod_1.z.string().min(2).max(150),

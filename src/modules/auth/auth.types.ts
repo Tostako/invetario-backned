@@ -15,7 +15,11 @@ export const LoginSchema = z.object({
 });
 
 export const SelectShopSchema = z.object({
-  shop_id: z.string().uuid(),
+  shop_id: z.string().uuid().optional(),
+  shop_slug: z.string().min(1).optional(),
+}).refine(data => data.shop_id || data.shop_slug, {
+  message: "Either shop_id or shop_slug must be provided",
+  path: ["shop_id", "shop_slug"],
 });
 
 export type SelectShopDto = z.infer<typeof SelectShopSchema>;

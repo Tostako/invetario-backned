@@ -11,8 +11,8 @@ export declare const CreateCategorySchema: z.ZodObject<{
     parent_id?: string | undefined;
 }, {
     name: string;
-    is_active?: unknown;
     description?: unknown;
+    is_active?: unknown;
     parent_id?: unknown;
 }>;
 export declare const UpdateCategorySchema: z.ZodObject<{
@@ -22,13 +22,13 @@ export declare const UpdateCategorySchema: z.ZodObject<{
     parent_id: z.ZodOptional<z.ZodEffects<z.ZodOptional<z.ZodString>, string | undefined, unknown>>;
 }, "strip", z.ZodTypeAny, {
     name?: string | undefined;
-    is_active?: boolean | undefined;
     description?: string | undefined;
+    is_active?: boolean | undefined;
     parent_id?: string | undefined;
 }, {
     name?: string | undefined;
-    is_active?: unknown;
     description?: unknown;
+    is_active?: unknown;
     parent_id?: unknown;
 }>;
 export declare const CategoryFilterSchema: z.ZodObject<{

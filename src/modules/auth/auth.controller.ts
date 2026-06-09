@@ -28,8 +28,8 @@ export const login = async (req: Request, res: Response, next: NextFunction): Pr
 
 export const selectShop = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { shop_id } = SelectShopSchema.parse(req.body);
-    const result = await selectShopService(req.user.email, shop_id, pickSessionMeta(req));
+    const { shop_id, shop_slug } = SelectShopSchema.parse(req.body);
+    const result = await selectShopService(req.user.email, { shopId: shop_id, shopSlug: shop_slug }, pickSessionMeta(req));
     sendSuccess(res, result);
   } catch (err) {
     next(err);
@@ -77,8 +77,8 @@ export const getUserShops = async (req: AuthenticatedRequest, res: Response, nex
 
 export const switchShop = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const { shop_id } = SelectShopSchema.parse(req.body);
-    const result = await selectShopService(req.user.email, shop_id, pickSessionMeta(req));
+    const { shop_id, shop_slug } = SelectShopSchema.parse(req.body);
+    const result = await selectShopService(req.user.email, { shopId: shop_id, shopSlug: shop_slug }, pickSessionMeta(req));
     sendSuccess(res, result);
   } catch (err) {
     next(err);
